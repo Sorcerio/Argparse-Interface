@@ -12,7 +12,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.validation import Number
 from textual.containers import Vertical, Horizontal
-from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input
+from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input, ListView, ListItem, Button
 
 from .Logging import getLogger
 
@@ -137,8 +137,7 @@ class Interface(App):
                     yield from self._buildDropdownInput(action)
                 elif (action.nargs == "+"):
                     # Add a list input
-                    # TODO: Add this
-                    self._uiLogger.warning("List inputs are not yet supported.")
+                    yield from self._buildListInput(action)
                 elif action.type == int:
                     # Add an int input
                     yield from self._buildTypedInput(action, inputType="integer")
@@ -189,12 +188,13 @@ class Interface(App):
             classes="hcontainer"
         )
 
-    def _buildTypedInput(self, action: argparse.Action, inputType: str = "text"):
+    def _buildTypedInput(self, action: argparse.Action, inputType: str = "text", hideLabel: bool = False):
         """
         Yields a typed text input for the given `action`.
 
         action: The `argparse` action to build from.
         inputType: The type of input to use for the Textual `Input(type=...)` value.
+        hideLabel: If `True`, the label will be hidden.
         """
         # Decide validators
         validators = None
@@ -203,9 +203,8 @@ class Interface(App):
         elif action.type == float:
             validators = [Number()]
 
-        # Add a typed input
-        yield Horizontal(
-            Label(action.dest),
+        # Prepare the ui elements
+        elements = [
             Input(
                 placeholder=str(action.metavar or action.dest),
                 type=inputType,
@@ -213,6 +212,68 @@ class Interface(App):
                 classes=f"{self.CLASS_TYPED_TEXT}",
                 validators=validators
             )
+        ]
+
+        # Add label
+        if not hideLabel:
+            elements.insert(0, Label(action.dest))
+
+        # Add a typed input
+        yield Horizontal(
+            *elements,
+            classes="hcontainer"
+        )
+
+    def _buildListInput(self, action: argparse.Action):
+        """
+        Yields a list input for the given `action`.
+
+        action: The `argparse` action to build from.
+        """
+        # Prepare the list items
+        items = []
+        for i in range(5):
+            # Add an item
+            items.append(self._buildListInputItem(action))
+
+        # Add a list input
+        yield Vertical(
+            Label(action.dest),
+            ListView(
+                *items
+            ),
+            Button("Add +"),
+            classes="itemlist"
+        )
+
+    def _buildListInputItem(self, action: argparse.Action):
+        """
+        Yields a list input item for the given `action`.
+
+        action: The `argparse` action to build from.
+        """
+        # Get proper input
+        if action.type == int:
+            # Add an int input
+            inputField = self._buildTypedInput(action, inputType="integer", hideLabel=True)
+        elif action.type == float:
+            # Add a float input
+            inputField = self._buildTypedInput(action, inputType="number", hideLabel=True)
+        else:
+            # Add a string input
+            inputField = self._buildTypedInput(action, hideLabel=True)
+
+        # Realize the input field
+        inputField = list(inputField)[0]
+        inputField.classes = "iteminput"
+
+        # Add a list input item
+        return ListItem(
+            Horizontal(
+                inputField,
+                Button("X", variant="error")
+            ),
+            classes="item"
         )
 
     # Functions
