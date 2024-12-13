@@ -5,7 +5,7 @@
 import os
 import argparse
 import logging
-from typing import Optional, Any
+from typing import Union, Optional, Any
 
 from textual import on
 from textual.app import App, ComposeResult
@@ -189,13 +189,18 @@ class Interface(App):
             classes="hcontainer"
         )
 
-    def _createInput(self, action: argparse.Action, inputType: str = "text") -> Input:
+    def _createInput(self,
+        action: argparse.Action,
+        inputType: str = "text",
+        value: Optional[Union[str, int, float]] = None
+    ) -> Input:
         """
         Creates a setup `Input` object for the given `action`.
         For the full input group, use `_buildTypedInput(...)`.
 
         action: The `argparse` action to build from.
         inputType: The type of input to use for the Textual `Input(type=...)` value.
+        value: The value to set the input to initially.
         """
         # Decide validators
         validators = None
@@ -205,6 +210,7 @@ class Interface(App):
             validators = [Number()]
 
         return Input(
+            value=(str(value) if (value is not None) else None),
             placeholder=str(action.metavar or action.dest),
             type=inputType,
             id=action.dest,
@@ -236,9 +242,8 @@ class Interface(App):
         """
         # Prepare the list items
         items = []
-        for i in range(5):
-            # Add an item
-            items.append(self._buildListInputItem(i, action))
+        if isinstance(self._commands[action.dest], list):
+            items = [self._buildListInputItem(i, action) for i in range(len(self._commands[action.dest]))]
 
         # Add a list input
         yield Vertical(
@@ -257,16 +262,22 @@ class Interface(App):
         i: The index of the item in the list.
         action: The `argparse` action to build from.
         """
+        # Get initial value if present
+        if isinstance(self._commands[action.dest], list):
+            value = self._commands[action.dest][i]
+        else:
+            value = None
+
         # Get proper input
         if action.type == int:
             # Add an int input
-            inputField = self._createInput(action, inputType="integer")
+            inputField = self._createInput(action, inputType="integer", value=value)
         elif action.type == float:
             # Add a float input
-            inputField = self._createInput(action, inputType="number")
+            inputField = self._createInput(action, inputType="number", value=value)
         else:
             # Add a string input
-            inputField = self._createInput(action)
+            inputField = self._createInput(action, value=value)
 
         # Add a list input item
         itemId = f"{action.dest}_list_{i}"
