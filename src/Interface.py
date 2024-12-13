@@ -93,7 +93,6 @@ class Interface(App):
         yield Header(icon="⛽") # TODO: User supplied text icon
 
         # Add content
-        # TODO: More dynamic?
         yield from self.buildParserInputs()
 
         # TODO: Make tabs for subparsers
@@ -351,7 +350,7 @@ class Interface(App):
         """
         Returns the parsed arguments from the interface.
         """
-        # TODO: Also need to handle the intended order...
+        # TODO: Add UUID order tracking to preserve list element order
         for id in self._listsData.keys():
             # Check if a dict that needs to be flattened
             if (id in self._commands) and isinstance(self._commands[id], dict):
