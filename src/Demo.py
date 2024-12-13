@@ -50,6 +50,7 @@ def demoCli():
     args = interface.parseArgs()
 
     # Make it pretty
+    print("\n")
     if args is not None:
         print("Parsed arguments:\n")
         pprint(vars(args))

@@ -7,6 +7,7 @@ import logging
 from typing import Union, Optional, Any
 
 from .Interface import Interface
+from .Logging import getLogger
 
 # MARK: Classes
 class Wrapper:
@@ -15,9 +16,6 @@ class Wrapper:
 
     Use this class to automatically handle the interface.
     """
-    # Constants
-    LOGGER_NAME = "ArgparseInterface"
-
     # Constructor
     def __init__(self,
         parser: argparse.ArgumentParser,
@@ -35,17 +33,7 @@ class Wrapper:
         self._parser = parser
         self.guiFlag = guiFlag
         self.showDebugUI = debugUI
-
-        # Logger setup
-        self._logger = logging.getLogger(self.LOGGER_NAME)
-        self._logger.setLevel(logLevel)
-
-        # Setup log handler
-        logHandler = logging.StreamHandler()
-        logHandler.setLevel(logLevel)
-        formatter = logging.Formatter("[%(levelname)s | %(asctime)s] %(message)s")
-        logHandler.setFormatter(formatter)
-        self._logger.addHandler(logHandler)
+        self._logger = getLogger(logLevel)
 
         # Add the gui argument to the parser
         self._addGuiArgument(self._parser)
