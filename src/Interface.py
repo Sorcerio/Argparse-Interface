@@ -35,6 +35,7 @@ class Interface(App):
     CLASS_LIST_RM_BTN = "listRemoveButton"
     CLASS_LIST_ADD_BTN = "listAddButton"
     CLASS_LIST_TEXT = "listInput"
+    CLASS_TABS_CONTAINER = "tabsContainer"
 
     BINDINGS = {
         Binding(
@@ -343,17 +344,15 @@ class Interface(App):
 
         action: The `argparse` action to build from.
         """
-        # TODO: Assign subparser id command data when switching to a different subparser
         # TODO: Remove subparser's children from command data when switching to a different subparser
-        # TODO: Assign command data for subparser selected if required from the start?
         # Add tabs for subparsers
-        with TabbedContent():
+        with TabbedContent(id=action.dest, classes=self.CLASS_TABS_CONTAINER):
             # Loop through subparsers
-            name: str
+            parserKey: str
             parser: argparse.ArgumentParser
-            for name, parser in action.choices.items():
+            for parserKey, parser in action.choices.items():
                 # Create the tab
-                with TabPane(name):
+                with TabPane(parserKey, id=f"{action.dest}_{parserKey}"):
                     # Add description
                     if parser.description:
                         yield Label(parser.description)
@@ -482,6 +481,17 @@ class Interface(App):
 
         # Remove from the UI
         self.get_widget_by_id(event.button.name).remove()
+
+    @on(TabbedContent.TabActivated, f".{CLASS_TABS_CONTAINER}")
+    def tabActivated(self, event: TabbedContent.TabActivated) -> None:
+        """
+        Triggered when a tab is activated.
+        """
+        # Get the target
+        dest, tabId = event.tab.id.rsplit("-", 1)[-1].split("_")
+
+        # Update the command
+        self._commands[dest] = tabId
 
     def bindingSubmit(self) -> None:
         """
