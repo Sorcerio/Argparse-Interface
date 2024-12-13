@@ -32,6 +32,7 @@ class Interface(App):
     CLASS_DROPDOWN = "dropdownInput"
     CLASS_TYPED_TEXT = "textInput"
     CLASS_LIST_RM_BTN = "listRemoveButton"
+    CLASS_LIST_ADD_BTN = "listAddButton"
     CLASS_LIST_TEXT = "listInput"
 
     BINDINGS = {
@@ -78,6 +79,7 @@ class Interface(App):
 
         self._parser = parser
         self._commands: dict[str, Optional[Any]] = {}
+        self._listsData: dict[str, tuple[argparse.Action, Optional[list[Any]]]] = {}
         self._uiLogger = getLogger(logLevel)
 
         # Check for the css
@@ -252,14 +254,25 @@ class Interface(App):
         if isinstance(self._commands[action.dest], list):
             items = [self._buildListInputItem(i, action) for i in range(len(self._commands[action.dest]))]
 
+        # Prepare the id for this list
+        itemId = f"{action.dest}_list"
+
+        # Create record of the list items
+        self._listsData[itemId] = (action, items)
+
         # Add a list input
         yield Vertical(
             Label(action.dest),
             Vertical(
                 *items,
+                id=itemId,
                 classes="vcontainer"
             ),
-            Button("Add +"),
+            Button(
+                "Add +",
+                name=itemId,
+                classes=f"{self.CLASS_LIST_ADD_BTN}"
+            ),
             classes="itemlist"
         )
 
@@ -379,6 +392,8 @@ class Interface(App):
         # Get appropriate value type
         val = self._typedStringToValue(event.value, event.input.type)
 
+        # TODO: Fix this
+
         # Update
         if isinstance(self._commands[dest], list):
             # Modify the list
@@ -390,11 +405,36 @@ class Interface(App):
         # Report
         self._uiLogger.debug(f"List based text changed: {event.input.id} -> {val} ({type(val)})")
 
+    @on(Button.Pressed, f".{CLASS_LIST_ADD_BTN}")
+    def listAddButtonPressed(self, event: Button.Pressed) -> None:
+        """
+        Triggered when a list add button is pressed.
+        """
+        # Unpack the data
+        action, listItems = self._listsData[event.button.name]
+
+        # Create the list item
+        listItem = self._buildListInputItem(
+            len(listItems),
+            action
+        )
+
+        # Add a new item to the record
+        if listItems is None:
+            listItems = [listItem]
+        else:
+            listItems.append(listItem)
+
+        # Add a new item to the ui
+        self.get_widget_by_id(event.button.name).mount(listItem)
+
     @on(Button.Pressed, f".{CLASS_LIST_RM_BTN}")
     def listRemoveButtonPressed(self, event: Button.Pressed) -> None:
         """
         Triggered when a list remove button is pressed.
         """
+        # TODO: fix this
+
         # Get the target
         dest, _, i = event.button.name.split("_")
 
@@ -408,6 +448,7 @@ class Interface(App):
 
         # Remove the UI element
         self.get_widget_by_id(event.button.name).remove()
+        _ = self._listsData[f"{dest}_list"].pop(int(i))
 
         # Report
         self._uiLogger.debug(f"List item removed: {event.button.name}")
