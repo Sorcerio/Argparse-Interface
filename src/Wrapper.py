@@ -39,7 +39,7 @@ class Wrapper:
         self._addGuiArgument(self._parser)
 
     # Functions
-    def parseArgs(self) -> Optional[argparse.Namespace]:
+    def parseArgs(self) -> Optional[dict[str, Optional[Any]]]:
         """
         Parses the arguments using the method defined by the cli flags.
         Will open the gui if prompted.
@@ -57,21 +57,21 @@ class Wrapper:
         # Check if the gui flag is present
         if hasattr(args, self.guiFlag.lstrip("-")) and getattr(args, self.guiFlag.lstrip("-")):
             # Get args from gui
-            self._logger.info("Opening the gui...")
+            self._logger.info("Starting the gui.")
             return self.parseArgsWithGui()
         else:
             # Get args from cli
-            self._logger.info("Parsing cli arguments...")
+            self._logger.info("Parsing cli arguments.")
             return self._parser.parse_args()
 
-    def parseArgsWithGui(self) -> Optional[argparse.Namespace]:
+    def parseArgsWithGui(self) -> Optional[dict[str, Optional[Any]]]:
         """
         Helper function that explicitly presents the gui and parses provided arguments.
         The gui flag will be ignored.
 
         Returns any parsed arguments.
         """
-        # TODO: Startup the Gui
+        # Startup the Gui
         gui = Interface(
             self._parser,
             self.guiFlag,
@@ -80,8 +80,11 @@ class Wrapper:
         )
         gui.run()
 
+        # Report
+        self._logger.info("Gui has been closed.")
+
         # TODO: Execute this function somewhere appropriate for the gui
-        return self._submitGuiArgs()
+        return gui.getArgs()
 
     # Private Functions
     def _addGuiArgument(self, parser: argparse.ArgumentParser):
@@ -93,11 +96,3 @@ class Wrapper:
         # Add the argument
         # TODO: Let user provide the help text
         parser.add_argument(self.guiFlag, action="store_true", help="Show the gui interface")
-
-    def _submitGuiArgs(self) -> Optional[argparse.Namespace]:
-        """
-        Submits the arguments from the gui.
-
-        Returns any parsed arguments.
-        """
-        return None

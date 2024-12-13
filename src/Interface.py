@@ -5,6 +5,7 @@
 import os
 import argparse
 import logging
+from typing import Optional, Any
 
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer, TabbedContent, TabPane, Label
@@ -46,6 +47,7 @@ class Interface(App):
         self.guiFlag = guiFlag
 
         self._parser = parser
+        self._commands: dict[str, Optional[Any]] = {}
         self._uiLogger = getLogger(logLevel)
 
         # Check for the css
@@ -54,14 +56,21 @@ class Interface(App):
 
     # Lifecycle
     def compose(self) -> ComposeResult:
+        # Add header
         yield Header(icon="⛽") # TODO: User supplied text icon
+
+        # Add content
+        # TODO: More dynamic?
         yield from self.buildParserInputs()
-        # # TODO: Make tabs for subparsers
+
+        # TODO: Make tabs for subparsers
         # with TabbedContent():
         #     with TabPane("Foo"):
         #         yield Label("Foo content")
         #     with TabPane("Bar"):
         #         yield Label("Bar content")
+
+        # Add footer
         yield Footer()
 
     def on_mount(self) -> None:
@@ -72,9 +81,26 @@ class Interface(App):
     def buildParserInputs(self):
         yield Label("Foo content") # TODO: Remove
 
-        tags = []
+        # Loop through the parser actions
         for action in (a for a in self._parser._actions if not ((self.guiFlag in a.option_strings) or isinstance(a, argparse._HelpAction))):
-            print(action)
+            # Record the parser key
+            if action.dest in self._commands:
+                self._uiLogger.warning(f"Duplicate command found: {action.dest}")
+
+            self._commands[action.dest] = None
+
+            # TODO: Check the type of action
+            pass
+
+        # TODO: Remove
+        print(self.getArgs())
+
+    # Functions
+    def getArgs(self) -> Optional[dict[str, Optional[Any]]]:
+        """
+        Returns the parsed arguments from the interface.
+        """
+        return self._commands
 
     # Handlers
     def on_button_pressed(self) -> None:
