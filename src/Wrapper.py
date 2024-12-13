@@ -1,15 +1,19 @@
-# Argparse Interface: Interface
-# Automatic interface wrapper for the `argparse` module.
+# Argparse Interface: Wrapper
+# Host wrapper for the Interface.
 
 # MARK: Imports
 import argparse
 import logging
 from typing import Union, Optional, Any
 
+from .Interface import Interface
+
 # MARK: Classes
-class ArgparseInterface:
+class Wrapper:
     """
     Automatic interface wrapper for the `argparse` module.
+
+    Use this class to automatically handle the interface.
     """
     # Constants
     LOGGER_NAME = "ArgparseInterface"
@@ -18,17 +22,17 @@ class ArgparseInterface:
     def __init__(self,
         parser: argparse.ArgumentParser,
         guiFlag: str = "--gui",
-        logLevel: int = logging.INFO,
+        logLevel: int = logging.INFO, # TODO: use WARN
         debugUI: bool = False,
     ):
         """
-        parser: The top-level ArgumentParser object to use in the interface.
+        parser: The top-level `ArgumentParser` object to use in the interface.
         guiFlag: The flag to use to indicate that the gui should be shown.
         logLevel: The logging level to use.
         debugUI: If `True`, the debug elements will be shown.
         """
         # Record data
-        self.parser = parser
+        self._parser = parser
         self.guiFlag = guiFlag
         self.showDebugUI = debugUI
 
@@ -42,6 +46,9 @@ class ArgparseInterface:
         formatter = logging.Formatter("[%(levelname)s | %(asctime)s] %(message)s")
         logHandler.setFormatter(formatter)
         self._logger.addHandler(logHandler)
+
+        # Add the gui argument to the parser
+        self._addGuiArgument(self._parser)
 
     # Functions
     def parseArgs(self) -> Optional[argparse.Namespace]:
@@ -62,10 +69,12 @@ class ArgparseInterface:
         # Check if the gui flag is present
         if hasattr(args, self.guiFlag.lstrip("-")) and getattr(args, self.guiFlag.lstrip("-")):
             # Get args from gui
+            self._logger.info("Opening the gui...")
             return self.parseArgsWithGui()
         else:
             # Get args from cli
-            return self.parser.parse_args()
+            self._logger.info("Parsing cli arguments...")
+            return self._parser.parse_args()
 
     def parseArgsWithGui(self) -> Optional[argparse.Namespace]:
         """
@@ -75,6 +84,8 @@ class ArgparseInterface:
         Returns any parsed arguments.
         """
         # TODO: Startup the Gui
+        gui = Interface()
+        gui.run()
 
         # TODO: Execute this function somewhere appropriate for the gui
         return self._submitGuiArgs()
