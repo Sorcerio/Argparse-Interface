@@ -252,10 +252,29 @@ class Interface(App):
         """
         # Prepare item list
         items: dict[str, Any] = {}
-        # TODO: Populate with defaults from action
+
+        # Add initial values if present
+        if isinstance(self._commands[action.dest], list):
+            # Process the initial values
+            cmdUpdate = {}
+            for v in self._commands[action.dest]:
+                # Get item id
+                itemId = str(uuid.uuid4())
+
+                # Add the UI item to items
+                items[itemId] = self._buildListInputItem(
+                    itemId,
+                    action,
+                    value=v
+                )
+
+                # Add to command update
+                cmdUpdate[itemId] = v
+
+            # Update the command
+            self._commands[action.dest] = cmdUpdate
 
         # Prepare the id for this list
-        # listId = f"{action.dest}_list"
         listId = action.dest
 
         # Create record of the list items
@@ -265,7 +284,7 @@ class Interface(App):
         yield Vertical(
             Label(action.dest),
             Vertical(
-                *items,
+                *items.values(),
                 id=listId,
                 classes="vcontainer"
             ),
@@ -277,21 +296,16 @@ class Interface(App):
             classes="itemlist"
         )
 
-    def _buildListInputItem(self, id: str, action: argparse.Action):
+    def _buildListInputItem(self, id: str, action: argparse.Action, value: Optional[str] = None):
         """
         Yields a list input item for the given `action`.
 
         id: The identifier for this list item.
         action: The `argparse` action to build from.
+        value: The initial value for this list item.
         """
         # Prepare the id for this list item
         itemId = f"{action.dest}_{id}"
-
-        # Get initial value if present
-        if isinstance(self._commands[action.dest], dict):
-            value = self._commands[action.dest].get(id, None)
-        else:
-            value = None
 
         # Update the command data
         if isinstance(self._commands[action.dest], dict):
