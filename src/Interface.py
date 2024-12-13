@@ -13,7 +13,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.validation import Number
 from textual.containers import Vertical, Horizontal
-from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input, ListView, ListItem, Button
+from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input, Button
 
 from .Logging import getLogger
 
@@ -94,6 +94,11 @@ class Interface(App):
         yield Header(icon="⛽") # TODO: User supplied text icon
 
         # Add content
+        yield Label(self._parser.prog)
+
+        if self._parser.description:
+            yield Label(self._parser.description)
+
         yield from self._buildParserInputs(self._parser)
 
         # Add footer
