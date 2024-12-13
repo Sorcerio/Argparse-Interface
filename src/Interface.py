@@ -16,6 +16,8 @@ from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switc
 
 from .Logging import getLogger
 
+# TODO: Add `tooltip` to all inputs with their `help` text!
+
 # MARK: Classes
 class Interface(App):
     """
@@ -30,6 +32,7 @@ class Interface(App):
     CLASS_DROPDOWN = "dropdownInput"
     CLASS_TYPED_TEXT = "textInput"
     CLASS_LIST_RM_BTN = "listRemoveButton"
+    CLASS_LIST_TEXT = "listInput"
 
     BINDINGS = {
         Binding(
@@ -192,6 +195,8 @@ class Interface(App):
     def _createInput(self,
         action: argparse.Action,
         inputType: str = "text",
+        name: Optional[str] = None,
+        classes: Optional[str] = CLASS_TYPED_TEXT,
         value: Optional[Union[str, int, float]] = None
     ) -> Input:
         """
@@ -200,6 +205,7 @@ class Interface(App):
 
         action: The `argparse` action to build from.
         inputType: The type of input to use for the Textual `Input(type=...)` value.
+        classes: The classes to add to the input.
         value: The value to set the input to initially.
         """
         # Decide validators
@@ -213,8 +219,9 @@ class Interface(App):
             value=(str(value) if (value is not None) else None),
             placeholder=str(action.metavar or action.dest),
             type=inputType,
+            name=name,
             id=action.dest,
-            classes=f"{self.CLASS_TYPED_TEXT}",
+            classes=classes,
             validators=validators
         )
 
@@ -248,8 +255,9 @@ class Interface(App):
         # Add a list input
         yield Vertical(
             Label(action.dest),
-            ListView(
-                *items
+            Vertical(
+                *items,
+                classes="vcontainer"
             ),
             Button("Add +"),
             classes="itemlist"
@@ -262,34 +270,43 @@ class Interface(App):
         i: The index of the item in the list.
         action: The `argparse` action to build from.
         """
+        # Prepare the id for this list item
+        itemId = f"{action.dest}_list_{i}"
+
         # Get initial value if present
         if isinstance(self._commands[action.dest], list):
             value = self._commands[action.dest][i]
         else:
             value = None
 
-        # Get proper input
+        # Get proper input type
         if action.type == int:
-            # Add an int input
-            inputField = self._createInput(action, inputType="integer", value=value)
+            # An int input
+            inputType = "integer"
         elif action.type == float:
-            # Add a float input
-            inputField = self._createInput(action, inputType="number", value=value)
+            # A float input
+            inputType = "number"
         else:
-            # Add a string input
-            inputField = self._createInput(action, value=value)
+            # A string input
+            inputType = "text"
+
+        # Create input
+        inputField = self._createInput(
+            action,
+            inputType=inputType,
+            name=itemId,
+            classes=self.CLASS_LIST_TEXT,
+            value=value
+        )
 
         # Add a list input item
-        itemId = f"{action.dest}_list_{i}"
-        return ListItem(
-            Horizontal(
-                inputField,
-                Button(
-                    "X",
-                    name=itemId,
-                    classes=f"{self.CLASS_LIST_RM_BTN}",
-                    variant="error"
-                )
+        return Horizontal(
+            inputField,
+            Button(
+                "X",
+                name=itemId,
+                classes=f"{self.CLASS_LIST_RM_BTN}",
+                variant="error"
             ),
             id=itemId,
             classes="item"
@@ -301,6 +318,26 @@ class Interface(App):
         Returns the parsed arguments from the interface.
         """
         return self._commands
+
+    # MARK: Private Functions
+    def _typedStringToValue(self, s: str, inputType: str) -> Optional[Union[str, int, float]]:
+        """
+        Converts a typed input string into an `int`, `float`, the `s` string, or `None`.
+
+        s: The string to convert.
+        inputType: The type of input to convert to.
+
+        Returns the converted value.
+        """
+        try:
+            if inputType == "integer":
+                return int(s)
+            elif inputType == "number":
+                return float(s)
+            else:
+                return s
+        except ValueError:
+            return None
 
     # MARK: Handlers
     @on(Switch.Changed, f".{CLASS_SWITCH}")
@@ -325,19 +362,33 @@ class Interface(App):
         Triggered when a typed text input is changed.
         """
         # Get appropriate value type
-        try:
-            if event.input.type == "integer":
-                val = int(event.value)
-            elif event.input.type == "number":
-                val = float(event.value)
-            else:
-                val = event.value
-        except ValueError:
-            val = None
+        val = self._typedStringToValue(event.value, event.input.type)
 
         # Update
         self._commands[event.input.id] = val
         self._uiLogger.debug(f"Text changed: {event.input.id} -> {val} ({type(val)})")
+
+    @on(Input.Changed, f".{CLASS_LIST_TEXT}")
+    def inputTypedChanged(self, event: Input.Changed) -> None:
+        """
+        Triggered when a typed text input *within a list* is changed.
+        """
+        # Get the target
+        dest, _, i = event.input.name.split("_")
+
+        # Get appropriate value type
+        val = self._typedStringToValue(event.value, event.input.type)
+
+        # Update
+        if isinstance(self._commands[dest], list):
+            # Modify the list
+            self._commands[dest][int(i)] = val
+        else:
+            # Create the list
+            self._commands[dest] = [val]
+
+        # Report
+        self._uiLogger.debug(f"List based text changed: {event.input.id} -> {val} ({type(val)})")
 
     @on(Button.Pressed, f".{CLASS_LIST_RM_BTN}")
     def listRemoveButtonPressed(self, event: Button.Pressed) -> None:
