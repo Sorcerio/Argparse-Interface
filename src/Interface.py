@@ -108,8 +108,6 @@ class Interface(App):
         """
         Yields the UI elements for the parser inputs.
         """
-        yield Label("Foo content") # TODO: Remove
-
         # Loop through the parser actions
         for action in (a for a in self._parser._actions if not ((self.guiFlag in a.option_strings) or isinstance(a, argparse._HelpAction))):
             # Record the parser key
@@ -123,13 +121,13 @@ class Interface(App):
             if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
                 # Add a switch
                 # Set the inferred value
-                # TODO: Should it be this? Or should it stay `None` if there's no default?
-                self._commands[action.dest] = isinstance(action, argparse._StoreTrueAction)
+                # self._commands[action.dest] = isinstance(action, argparse._StoreTrueAction)
 
                 # Create the switch
                 yield from self._buildSwitchInput(action)
             elif isinstance(action, argparse._SubParsersAction):
                 # Add a subparser group
+                # TODO: Add this
                 self._uiLogger.warning("Subparsers are not yet supported.")
             elif isinstance(action, argparse._StoreAction):
                 # TODO: Add advanced "typed" input types like file select, etc
@@ -139,6 +137,7 @@ class Interface(App):
                     yield from self._buildDropdownInput(action)
                 elif (action.nargs == "+"):
                     # Add a list input
+                    # TODO: Add this
                     self._uiLogger.warning("List inputs are not yet supported.")
                 elif action.type == int:
                     # Add an int input
@@ -152,9 +151,6 @@ class Interface(App):
             else:
                 # Report
                 self._uiLogger.warning(f"Unknown action type: {action}")
-
-        # TODO: Remove
-        print(self.getArgs())
 
     def _buildSwitchInput(self, action: argparse.Action):
         """
