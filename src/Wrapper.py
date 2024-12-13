@@ -73,6 +73,8 @@ class Wrapper:
         """
         # TODO: Startup the Gui
         gui = Interface(
+            self._parser,
+            self.guiFlag,
             title=self._parser.prog,
             subTitle=self._parser.description or Interface.SUB_TITLE,
         )

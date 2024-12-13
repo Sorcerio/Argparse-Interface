@@ -1,0 +1,4 @@
+Screen {
+    layout: vertical;
+    overflow-y: auto;
+}
