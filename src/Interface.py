@@ -8,7 +8,8 @@ import logging
 from typing import Optional, Any
 
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, TabbedContent, TabPane, Label
+from textual.containers import Horizontal
+from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch
 
 from .Logging import getLogger
 
@@ -79,6 +80,9 @@ class Interface(App):
 
     # UI Builders
     def buildParserInputs(self):
+        """
+        Yields the UI elements for the parser inputs.
+        """
         yield Label("Foo content") # TODO: Remove
 
         # Loop through the parser actions
@@ -89,11 +93,53 @@ class Interface(App):
 
             self._commands[action.dest] = None
 
-            # TODO: Check the type of action
-            pass
+            # Decide what UI to show
+            # TODO: Check argparse docs to find any missing deliniations
+            if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
+                # Add a switch
+                yield from self._buildSwitchInput(action)
+            elif isinstance(action, argparse._SubParsersAction):
+                # Add a subparser group
+                self._uiLogger.warning("Subparsers are not yet supported.")
+            elif isinstance(action, argparse._StoreAction):
+                # Decide based on expected type and properties
+                if (action.choices is not None):
+                    # Add a combo box input
+                    self._uiLogger.warning("Dropdown inputs are not yet supported.")
+                elif (action.nargs == "+"):
+                    # Add a list input
+                    self._uiLogger.warning("List inputs are not yet supported.")
+                elif action.type == int:
+                    # Add an int input
+                    self._uiLogger.warning("Int inputs are not yet supported.")
+                elif action.type == float:
+                    # Add a float input
+                    self._uiLogger.warning("qwerty inputs are not yet supported.")
+                else:
+                    # Add a string input
+                    self._uiLogger.warning("String inputs are not yet supported.")
+            else:
+                # Report
+                self._uiLogger.warning(f"Unknown action type: {action}")
 
         # TODO: Remove
         print(self.getArgs())
+
+    def _buildSwitchInput(self, action: argparse.Action):
+        """
+        Yields a switch input for the given `action`.
+
+        action: The `argparse` action to build the checkbox for.
+        """
+        # Add a switch
+        yield Horizontal(
+            Label(action.dest),
+            Switch(
+                value=isinstance(action, argparse._StoreTrueAction),
+                tooltip=action.help
+            ),
+            classes="hcontainer"
+        )
 
     # Functions
     def getArgs(self) -> Optional[dict[str, Optional[Any]]]:

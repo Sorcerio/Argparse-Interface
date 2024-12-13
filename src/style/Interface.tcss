@@ -2,3 +2,14 @@ Screen {
     layout: vertical;
     overflow-y: auto;
 }
+
+.hcontainer {
+    height: auto;
+    width: auto;
+}
+
+.hcontainer > Label {
+    height: 3;
+    content-align: center middle;
+    width: auto;
+}
