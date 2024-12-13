@@ -109,7 +109,7 @@ class Interface(App):
         Yields the UI elements for the parser inputs.
         """
         # Loop through the parser actions
-        for action in (a for a in parser._actions if not ((self.guiFlag in a.option_strings) or isinstance(a, argparse._HelpAction))):
+        for action in self._getParserActions(parser):
             # Record the parser key
             if action.dest in self._commands:
                 self._uiLogger.warning(f"Duplicate command found: {action.dest}")
@@ -344,7 +344,6 @@ class Interface(App):
 
         action: The `argparse` action to build from.
         """
-        # TODO: Remove subparser's children from command data when switching to a different subparser
         # Add tabs for subparsers
         with TabbedContent(id=action.dest, classes=self.CLASS_TABS_CONTAINER):
             # Loop through subparsers
@@ -364,6 +363,7 @@ class Interface(App):
         """
         Returns the parsed arguments from the interface.
         """
+        # Process the commands
         # TODO: Add UUID order tracking to preserve list element order
         for id in self._listsData.keys():
             # Check if a dict that needs to be flattened
@@ -377,6 +377,15 @@ class Interface(App):
         return self._commands
 
     # MARK: Private Functions
+    def _getParserActions(self, parser: argparse.ArgumentParser) -> list[argparse.Action]:
+        """
+        Returns a list of actions from the given `ArgumentParser` that are not excluded action types.
+        Help and gui trigger actions are always excluded.
+
+        parser: The parser to get the actions from.
+        """
+        return (a for a in parser._actions if not ((self.guiFlag in a.option_strings) or isinstance(a, argparse._HelpAction)))
+
     def _typedStringToValue(self, s: str, inputType: str) -> Optional[Union[str, int, float]]:
         """
         Converts a typed input string into an `int`, `float`, the `s` string, or `None`.
