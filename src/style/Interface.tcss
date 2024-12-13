@@ -15,5 +15,5 @@ Screen {
 }
 
 .hcontainer > Input {
-    height: auto;
+    margin: 1 1;
 }

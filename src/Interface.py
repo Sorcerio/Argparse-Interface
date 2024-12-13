@@ -10,6 +10,7 @@ from typing import Optional, Any
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.validation import Number
 from textual.containers import Vertical, Horizontal
 from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input
 
@@ -31,12 +32,12 @@ class Interface(App):
 
     BINDINGS = {
         Binding(
-            "ctrl+c",
+            "ctrl+c", # TODO: Change this back to "ctrl+q"
             "quit",
             "Quit",
             tooltip="Quit without submitting.",
             show=True,
-            # priority=True
+            priority=True
         ),
         Binding(
             "ctrl+s",
@@ -44,7 +45,7 @@ class Interface(App):
             "Submit",
             tooltip="Submit.",
             show=True,
-            # priority=True
+            priority=True
         )
     }
 
@@ -122,7 +123,7 @@ class Interface(App):
             if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
                 # Add a switch
                 # Set the inferred value
-                # Should it be this? Or should it stay `None` if there's no default?
+                # TODO: Should it be this? Or should it stay `None` if there's no default?
                 self._commands[action.dest] = isinstance(action, argparse._StoreTrueAction)
 
                 # Create the switch
@@ -131,6 +132,7 @@ class Interface(App):
                 # Add a subparser group
                 self._uiLogger.warning("Subparsers are not yet supported.")
             elif isinstance(action, argparse._StoreAction):
+                # TODO: Add advanced "typed" input types like file select, etc
                 # Decide based on expected type and properties
                 if (action.choices is not None):
                     # Add a combo box input
@@ -140,15 +142,13 @@ class Interface(App):
                     self._uiLogger.warning("List inputs are not yet supported.")
                 elif action.type == int:
                     # Add an int input
-                    self._uiLogger.warning("Int inputs are not yet supported.")
-                    yield from self._buildTextInput(action) # TODO: Make number specific!
+                    yield from self._buildTypedInput(action, inputType="integer")
                 elif action.type == float:
                     # Add a float input
-                    self._uiLogger.warning("Float inputs are not yet supported.")
-                    yield from self._buildTextInput(action) # TODO: Make number specific!
+                    yield from self._buildTypedInput(action, inputType="number")
                 else:
                     # Add a string input
-                    yield from self._buildTextInput(action)
+                    yield from self._buildTypedInput(action)
             else:
                 # Report
                 self._uiLogger.warning(f"Unknown action type: {action}")
@@ -193,20 +193,29 @@ class Interface(App):
             classes="hcontainer"
         )
 
-    def _buildTextInput(self, action: argparse.Action):
+    def _buildTypedInput(self, action: argparse.Action, inputType: str = "text"):
         """
-        Yields a generic text input for the given `action`.
+        Yields a typed text input for the given `action`.
 
         action: The `argparse` action to build from.
+        inputType: The type of input to use for the Textual `Input(type=...)` value.
         """
+        # Decide validators
+        validators = None
+        if action.type == int:
+            validators = [Number()]
+        elif action.type == float:
+            validators = [Number()]
+
         # Add a typed input
         yield Horizontal(
             Label(action.dest),
             Input(
                 placeholder=str(action.metavar or action.dest),
-                type="text",
+                type=inputType,
                 id=action.dest,
-                classes=f"{self.CLASS_TYPED_TEXT}"
+                classes=f"{self.CLASS_TYPED_TEXT}",
+                validators=validators
             )
         )
 
@@ -239,8 +248,20 @@ class Interface(App):
         """
         Triggered when a typed text input is changed.
         """
-        self._commands[event.input.id] = event.value
-        self._uiLogger.debug(f"Text changed: {event.input.id} -> {event.value}")
+        # Get appropriate value type
+        try:
+            if event.input.type == "integer":
+                val = int(event.value)
+            elif event.input.type == "number":
+                val = float(event.value)
+            else:
+                val = event.value
+        except ValueError:
+            val = None
+
+        # Report
+        self._commands[event.input.id] = val
+        self._uiLogger.debug(f"Text changed: {event.input.id} -> {val} ({type(val)})")
 
     def bindingSubmit(self) -> None:
         """

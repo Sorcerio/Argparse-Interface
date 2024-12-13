@@ -53,6 +53,6 @@ def demoCli():
     print("\n")
     if args is not None:
         print("Parsed arguments:\n")
-        pprint(args)
+        pprint({k: f"{v} ({type(v).__name__})" for k, v in args.items()})
     else:
         print(f"No arguments parsed:\n{args}")
