@@ -93,14 +93,7 @@ class Interface(App):
         yield Header(icon="⛽") # TODO: User supplied text icon
 
         # Add content
-        yield from self.buildParserInputs()
-
-        # TODO: Make tabs for subparsers
-        # with TabbedContent():
-        #     with TabPane("Foo"):
-        #         yield Label("Foo content")
-        #     with TabPane("Bar"):
-        #         yield Label("Bar content")
+        yield from self._buildParserInputs(self._parser)
 
         # Add footer
         yield Footer()
@@ -110,12 +103,12 @@ class Interface(App):
         self.sub_title = self.mainSubtitle
 
     # MARK: UI Builders
-    def buildParserInputs(self):
+    def _buildParserInputs(self, parser: argparse.ArgumentParser):
         """
         Yields the UI elements for the parser inputs.
         """
         # Loop through the parser actions
-        for action in (a for a in self._parser._actions if not ((self.guiFlag in a.option_strings) or isinstance(a, argparse._HelpAction))):
+        for action in (a for a in parser._actions if not ((self.guiFlag in a.option_strings) or isinstance(a, argparse._HelpAction))):
             # Record the parser key
             if action.dest in self._commands:
                 self._uiLogger.warning(f"Duplicate command found: {action.dest}")
@@ -133,8 +126,7 @@ class Interface(App):
                 yield from self._buildSwitchInput(action)
             elif isinstance(action, argparse._SubParsersAction):
                 # Add a subparser group
-                # TODO: Add this
-                self._uiLogger.warning("Subparsers are not yet supported.")
+                yield from self._buildSubparserGroup(action)
             elif isinstance(action, argparse._StoreAction):
                 # TODO: Add advanced "typed" input types like file select, etc
                 # Decide based on expected type and properties
@@ -344,6 +336,29 @@ class Interface(App):
             id=itemId,
             classes="item"
         )
+
+    def _buildSubparserGroup(self, action: argparse.Action):
+        """
+        Yields a subparser group for the given `action`.
+
+        action: The `argparse` action to build from.
+        """
+        # TODO: Assign subparser id command data when switching to a different subparser
+        # TODO: Remove subparser's children from command data when switching to a different subparser
+        # TODO: Assign command data for subparser selected if required from the start?
+        # Add tabs for subparsers
+        with TabbedContent():
+            # Loop through subparsers
+            name: str
+            parser: argparse.ArgumentParser
+            for name, parser in action.choices.items():
+                # Create the tab
+                with TabPane(name):
+                    # Add description
+                    if parser.description:
+                        yield Label(parser.description)
+
+                    yield from self._buildParserInputs(parser)
 
     # MARK: Functions
     def getArgs(self) -> Optional[dict[str, Optional[Any]]]:

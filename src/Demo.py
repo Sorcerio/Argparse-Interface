@@ -39,6 +39,7 @@ def demoCli():
 
     bar_parser = subparsers.add_parser("bar")
     bar_parser.add_argument("y", type=float)
+    bar_parser.add_argument("-s", "--string", type=str, help="A string argument")
 
     third_parser = subparsers.add_parser("third")
     third_parser.add_argument("-b", action="store_true", help="A boolean argument")
