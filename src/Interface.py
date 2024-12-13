@@ -29,6 +29,7 @@ class Interface(App):
     CLASS_SWITCH = "switchInput"
     CLASS_DROPDOWN = "dropdownInput"
     CLASS_TYPED_TEXT = "textInput"
+    CLASS_LIST_RM_BTN = "listRemoveButton"
 
     BINDINGS = {
         Binding(
@@ -237,7 +238,7 @@ class Interface(App):
         items = []
         for i in range(5):
             # Add an item
-            items.append(self._buildListInputItem(action))
+            items.append(self._buildListInputItem(i, action))
 
         # Add a list input
         yield Vertical(
@@ -249,10 +250,11 @@ class Interface(App):
             classes="itemlist"
         )
 
-    def _buildListInputItem(self, action: argparse.Action):
+    def _buildListInputItem(self, i: int, action: argparse.Action):
         """
         Yields a list input item for the given `action`.
 
+        i: The index of the item in the list.
         action: The `argparse` action to build from.
         """
         # Get proper input
@@ -267,11 +269,18 @@ class Interface(App):
             inputField = self._createInput(action)
 
         # Add a list input item
+        itemId = f"{action.dest}_list_{i}"
         return ListItem(
             Horizontal(
                 inputField,
-                Button("X", variant="error")
+                Button(
+                    "X",
+                    name=itemId,
+                    classes=f"{self.CLASS_LIST_RM_BTN}",
+                    variant="error"
+                )
             ),
+            id=itemId,
             classes="item"
         )
 
@@ -315,9 +324,31 @@ class Interface(App):
         except ValueError:
             val = None
 
-        # Report
+        # Update
         self._commands[event.input.id] = val
         self._uiLogger.debug(f"Text changed: {event.input.id} -> {val} ({type(val)})")
+
+    @on(Button.Pressed, f".{CLASS_LIST_RM_BTN}")
+    def listRemoveButtonPressed(self, event: Button.Pressed) -> None:
+        """
+        Triggered when a list remove button is pressed.
+        """
+        # Get the target
+        dest, _, i = event.button.name.split("_")
+
+        # Update the command
+        if self._commands[dest] is not None:
+            # Remove the item
+            self._commands[dest] = [i for i in self._commands[dest] if i != int(i)]
+        else:
+            # Report
+            self._uiLogger.warning(f"Command has odd type when removing list item: {dest} -> {self._commands[dest]}")
+
+        # Remove the UI element
+        self.get_widget_by_id(event.button.name).remove()
+
+        # Report
+        self._uiLogger.debug(f"List item removed: {event.button.name}")
 
     def bindingSubmit(self) -> None:
         """

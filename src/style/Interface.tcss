@@ -22,7 +22,7 @@ Screen {
 }
 
 .itemlist {
-    height: auto;
+    height: 15;
 }
 
 .itemlist .item {

@@ -30,6 +30,7 @@ def demoCli():
     parser.add_argument("-bf", "--boolFalse", action="store_false", help="A boolean argument")
     parser.add_argument("-c", "--choice", type=int, choices=[1, 2, 3], help="A choice argument")
     parser.add_argument("-l", "--list", nargs="+", help="A list argument")
+    parser.add_argument("-ld", "--defaultList", nargs="+", default=[69, 420, 1337], type=int, help="A list argument")
 
     subparsers = parser.add_subparsers(dest="command", help="A Subcommand")
 

@@ -62,7 +62,7 @@ class Wrapper:
         else:
             # Get args from cli
             self._logger.info("Parsing cli arguments.")
-            return self._parser.parse_args()
+            return vars(self._parser.parse_args())
 
     def parseArgsWithGui(self) -> Optional[dict[str, Optional[Any]]]:
         """
