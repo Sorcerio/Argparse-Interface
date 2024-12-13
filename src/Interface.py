@@ -24,7 +24,7 @@ class Interface(App):
     This class is the interface runner for the module.
     Use `Wrapper` to automatically handle the interface.
     """
-    # Constants
+    # MARK: Constants
     CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss")
     CLASS_SWITCH = "switchInput"
     CLASS_DROPDOWN = "dropdownInput"
@@ -49,7 +49,7 @@ class Interface(App):
         )
     }
 
-    # Constructor
+    # MARK: Constructor
     def __init__(self,
         parser: argparse.ArgumentParser,
         guiFlag: str, # TODO: General blacklist of args
@@ -80,7 +80,7 @@ class Interface(App):
         if not os.path.exists(self.CSS_PATH):
             self._uiLogger.error(f"Could not find the css file at: {self.CSS_PATH}")
 
-    # Lifecycle
+    # MARK: Lifecycle
     def compose(self) -> ComposeResult:
         # Add header
         yield Header(icon="⛽") # TODO: User supplied text icon
@@ -103,7 +103,7 @@ class Interface(App):
         self.title = self.mainTitle
         self.sub_title = self.mainSubtitle
 
-    # UI Builders
+    # MARK: UI Builders
     def buildParserInputs(self):
         """
         Yields the UI elements for the parser inputs.
@@ -188,13 +188,13 @@ class Interface(App):
             classes="hcontainer"
         )
 
-    def _buildTypedInput(self, action: argparse.Action, inputType: str = "text", hideLabel: bool = False):
+    def _createInput(self, action: argparse.Action, inputType: str = "text") -> Input:
         """
-        Yields a typed text input for the given `action`.
+        Creates a setup `Input` object for the given `action`.
+        For the full input group, use `_buildTypedInput(...)`.
 
         action: The `argparse` action to build from.
         inputType: The type of input to use for the Textual `Input(type=...)` value.
-        hideLabel: If `True`, the label will be hidden.
         """
         # Decide validators
         validators = None
@@ -203,24 +203,27 @@ class Interface(App):
         elif action.type == float:
             validators = [Number()]
 
-        # Prepare the ui elements
-        elements = [
-            Input(
-                placeholder=str(action.metavar or action.dest),
-                type=inputType,
-                id=action.dest,
-                classes=f"{self.CLASS_TYPED_TEXT}",
-                validators=validators
-            )
-        ]
+        return Input(
+            placeholder=str(action.metavar or action.dest),
+            type=inputType,
+            id=action.dest,
+            classes=f"{self.CLASS_TYPED_TEXT}",
+            validators=validators
+        )
 
-        # Add label
-        if not hideLabel:
-            elements.insert(0, Label(action.dest))
+    def _buildTypedInput(self, action: argparse.Action, inputType: str = "text"):
+        """
+        Yields a typed text input group for the given `action`.
+        For just the `Input` object, use `_createInput(...)`.
 
+        action: The `argparse` action to build from.
+        inputType: The type of input to use for the Textual `Input(type=...)` value.
+        hideLabel: If `True`, the label will be hidden.
+        """
         # Add a typed input
         yield Horizontal(
-            *elements,
+            Label(action.dest),
+            self._createInput(action, inputType=inputType),
             classes="hcontainer"
         )
 
@@ -255,17 +258,13 @@ class Interface(App):
         # Get proper input
         if action.type == int:
             # Add an int input
-            inputField = self._buildTypedInput(action, inputType="integer", hideLabel=True)
+            inputField = self._createInput(action, inputType="integer")
         elif action.type == float:
             # Add a float input
-            inputField = self._buildTypedInput(action, inputType="number", hideLabel=True)
+            inputField = self._createInput(action, inputType="number")
         else:
             # Add a string input
-            inputField = self._buildTypedInput(action, hideLabel=True)
-
-        # Realize the input field
-        inputField = list(inputField)[0]
-        inputField.classes = "iteminput"
+            inputField = self._createInput(action)
 
         # Add a list input item
         return ListItem(
@@ -276,14 +275,14 @@ class Interface(App):
             classes="item"
         )
 
-    # Functions
+    # MARK: Functions
     def getArgs(self) -> Optional[dict[str, Optional[Any]]]:
         """
         Returns the parsed arguments from the interface.
         """
         return self._commands
 
-    # Handlers
+    # MARK: Handlers
     @on(Switch.Changed, f".{CLASS_SWITCH}")
     def inputSwitchChanged(self, event: Switch.Changed) -> None:
         """

@@ -28,10 +28,11 @@ Screen {
 .itemlist .item {
     width: 100%;
     height: 3;
+    padding: 0;
 }
 
 .itemlist .item Input {
-    width: 100%;
+    width: 25%;
 }
 
 .itemlist .item Button {
