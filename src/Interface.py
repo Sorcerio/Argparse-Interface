@@ -7,6 +7,7 @@ import argparse
 import logging
 from typing import Optional, Any
 
+from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch
@@ -23,6 +24,7 @@ class Interface(App):
     """
     # Constants
     CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss")
+    CLASS_SWITCH = "switchInput"
 
     # Constructor
     def __init__(self,
@@ -91,12 +93,17 @@ class Interface(App):
             if action.dest in self._commands:
                 self._uiLogger.warning(f"Duplicate command found: {action.dest}")
 
-            self._commands[action.dest] = None
+            self._commands[action.dest] = (action.default or None)
 
             # Decide what UI to show
             # TODO: Check argparse docs to find any missing deliniations
             if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
                 # Add a switch
+                # Set the inferred value
+                # Should it be this? Or should it stay `None` if there's no default?
+                self._commands[action.dest] = isinstance(action, argparse._StoreTrueAction)
+
+                # Create the switch
                 yield from self._buildSwitchInput(action)
             elif isinstance(action, argparse._SubParsersAction):
                 # Add a subparser group
@@ -136,7 +143,9 @@ class Interface(App):
             Label(action.dest),
             Switch(
                 value=isinstance(action, argparse._StoreTrueAction),
-                tooltip=action.help
+                tooltip=action.help,
+                id=action.dest,
+                classes=f"{self.CLASS_SWITCH}"
             ),
             classes="hcontainer"
         )
@@ -149,5 +158,10 @@ class Interface(App):
         return self._commands
 
     # Handlers
+    @on(Switch.Changed, f".{CLASS_SWITCH}")
+    def inputSwitchChanged(self, event: Switch.Changed) -> None:
+        self._commands[event.switch.id] = event.value
+        self._uiLogger.debug(f"Switch changed: {event.switch.id} -> {event.value}")
+
     def on_button_pressed(self) -> None:
         self.exit()
