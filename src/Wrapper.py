@@ -72,7 +72,10 @@ class Wrapper:
         Returns any parsed arguments.
         """
         # TODO: Startup the Gui
-        gui = Interface()
+        gui = Interface(
+            title=self._parser.prog,
+            subTitle=self._parser.description or Interface.SUB_TITLE,
+        )
         gui.run()
 
         # TODO: Execute this function somewhere appropriate for the gui
