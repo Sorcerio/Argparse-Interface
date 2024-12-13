@@ -10,8 +10,8 @@ from typing import Optional, Any
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal
-from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch
+from textual.containers import Vertical, Horizontal
+from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select
 
 from .Logging import getLogger
 
@@ -26,6 +26,7 @@ class Interface(App):
     # Constants
     CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss")
     CLASS_SWITCH = "switchInput"
+    CLASS_DROPDOWN = "dropdownInput"
 
     BINDINGS = {
         Binding(
@@ -132,7 +133,7 @@ class Interface(App):
                 # Decide based on expected type and properties
                 if (action.choices is not None):
                     # Add a combo box input
-                    self._uiLogger.warning("Dropdown inputs are not yet supported.")
+                    yield from self._buildDropdownInput(action)
                 elif (action.nargs == "+"):
                     # Add a list input
                     self._uiLogger.warning("List inputs are not yet supported.")
@@ -156,7 +157,7 @@ class Interface(App):
         """
         Yields a switch input for the given `action`.
 
-        action: The `argparse` action to build the checkbox for.
+        action: The `argparse` action to build from.
         """
         # Add a switch
         yield Horizontal(
@@ -166,6 +167,25 @@ class Interface(App):
                 tooltip=action.help,
                 id=action.dest,
                 classes=f"{self.CLASS_SWITCH}"
+            ),
+            classes="hcontainer"
+        )
+
+    def _buildDropdownInput(self, action: argparse.Action):
+        """
+        Yields a dropdown (select) input for the given `action`.
+
+        action: The `argparse` action to build from.
+        """
+        # Add select dropdown
+        yield Horizontal(
+            Label(action.dest),
+            Select(
+                options=[(str(c), c) for c in action.choices],
+                value=(action.default if (action.default is not None) else action.choices[0]),
+                tooltip=action.help,
+                id=action.dest,
+                classes=f"{self.CLASS_DROPDOWN}"
             ),
             classes="hcontainer"
         )
@@ -185,6 +205,14 @@ class Interface(App):
         """
         self._commands[event.switch.id] = event.value
         self._uiLogger.debug(f"Switch changed: {event.switch.id} -> {event.value}")
+
+    @on(Select.Changed, f".{CLASS_DROPDOWN}")
+    def inputSwitchChanged(self, event: Select.Changed) -> None:
+        """
+        Triggered when an input switch is changed.
+        """
+        self._commands[event.select.id] = event.value
+        self._uiLogger.debug(f"Dropdown changed: {event.select.id} -> {event.value}")
 
     def bindingSubmit(self) -> None:
         """
