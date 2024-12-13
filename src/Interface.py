@@ -351,8 +351,16 @@ class Interface(App):
         """
         Returns the parsed arguments from the interface.
         """
-        # TODO: CRITICAL: Flatten the list item id: value dict into a list of values for it's dest
-        # Also need to handle the intended order...
+        # TODO: Also need to handle the intended order...
+        for id in self._listsData.keys():
+            # Check if a dict that needs to be flattened
+            if (id in self._commands) and isinstance(self._commands[id], dict):
+                # Build the update
+                cmdUpdate = [v for v in self._commands[id].values()]
+
+                # Apply the update
+                self._commands[id] = cmdUpdate
+
         return self._commands
 
     # MARK: Private Functions
