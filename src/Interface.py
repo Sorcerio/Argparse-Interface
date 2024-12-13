@@ -5,6 +5,7 @@
 import os
 import argparse
 import logging
+import uuid
 from typing import Union, Optional, Any
 
 from textual import on
@@ -79,7 +80,7 @@ class Interface(App):
 
         self._parser = parser
         self._commands: dict[str, Optional[Any]] = {}
-        self._listsData: dict[str, tuple[argparse.Action, Optional[list[Any]]]] = {}
+        self._listsData: dict[str, tuple[argparse.Action, dict[str, Any]]] = {} # { list id : (action, {list item id : list item}) }
         self._uiLogger = getLogger(logLevel)
 
         # Check for the css
@@ -249,48 +250,54 @@ class Interface(App):
 
         action: The `argparse` action to build from.
         """
-        # Prepare the list items
-        items = []
-        if isinstance(self._commands[action.dest], list):
-            items = [self._buildListInputItem(i, action) for i in range(len(self._commands[action.dest]))]
+        # Prepare item list
+        items: dict[str, Any] = {}
+        # TODO: Populate with defaults from action
 
         # Prepare the id for this list
-        itemId = f"{action.dest}_list"
+        # listId = f"{action.dest}_list"
+        listId = action.dest
 
         # Create record of the list items
-        self._listsData[itemId] = (action, items)
+        self._listsData[listId] = (action, items)
 
         # Add a list input
         yield Vertical(
             Label(action.dest),
             Vertical(
                 *items,
-                id=itemId,
+                id=listId,
                 classes="vcontainer"
             ),
             Button(
                 "Add +",
-                name=itemId,
+                name=listId,
                 classes=f"{self.CLASS_LIST_ADD_BTN}"
             ),
             classes="itemlist"
         )
 
-    def _buildListInputItem(self, i: int, action: argparse.Action):
+    def _buildListInputItem(self, id: str, action: argparse.Action):
         """
         Yields a list input item for the given `action`.
 
-        i: The index of the item in the list.
+        id: The identifier for this list item.
         action: The `argparse` action to build from.
         """
         # Prepare the id for this list item
-        itemId = f"{action.dest}_list_{i}"
+        itemId = f"{action.dest}_{id}"
 
         # Get initial value if present
-        if isinstance(self._commands[action.dest], list):
-            value = self._commands[action.dest][i]
+        if isinstance(self._commands[action.dest], dict):
+            value = self._commands[action.dest].get(id, None)
         else:
             value = None
+
+        # Update the command data
+        if isinstance(self._commands[action.dest], dict):
+            self._commands[action.dest][id] = value
+        else:
+            self._commands[action.dest] = {id: value}
 
         # Get proper input type
         if action.type == int:
@@ -330,6 +337,8 @@ class Interface(App):
         """
         Returns the parsed arguments from the interface.
         """
+        # TODO: CRITICAL: Flatten the list item id: value dict into a list of values for it's dest
+        # Also need to handle the intended order...
         return self._commands
 
     # MARK: Private Functions
@@ -387,20 +396,13 @@ class Interface(App):
         Triggered when a typed text input *within a list* is changed.
         """
         # Get the target
-        dest, _, i = event.input.name.split("_")
+        dest, id = event.input.name.split("_")
 
         # Get appropriate value type
         val = self._typedStringToValue(event.value, event.input.type)
 
-        # TODO: Fix this
-
-        # Update
-        if isinstance(self._commands[dest], list):
-            # Modify the list
-            self._commands[dest][int(i)] = val
-        else:
-            # Create the list
-            self._commands[dest] = [val]
+        # Update the command
+        self._commands[dest][id] = val
 
         # Report
         self._uiLogger.debug(f"List based text changed: {event.input.id} -> {val} ({type(val)})")
@@ -413,17 +415,17 @@ class Interface(App):
         # Unpack the data
         action, listItems = self._listsData[event.button.name]
 
+        # Get the uuid for this button
+        buttonId = str(uuid.uuid4())
+
         # Create the list item
         listItem = self._buildListInputItem(
-            len(listItems),
+            buttonId,
             action
         )
 
-        # Add a new item to the record
-        if listItems is None:
-            listItems = [listItem]
-        else:
-            listItems.append(listItem)
+        # Update the lists data
+        listItems[buttonId] = listItem
 
         # Add a new item to the ui
         self.get_widget_by_id(event.button.name).mount(listItem)
@@ -433,25 +435,17 @@ class Interface(App):
         """
         Triggered when a list remove button is pressed.
         """
-        # TODO: fix this
-
         # Get the target
-        dest, _, i = event.button.name.split("_")
+        dest, id = event.button.name.split("_")
 
-        # Update the command
-        if self._commands[dest] is not None:
-            # Remove the item
-            self._commands[dest] = [i for i in self._commands[dest] if i != int(i)]
-        else:
-            # Report
-            self._uiLogger.warning(f"Command has odd type when removing list item: {dest} -> {self._commands[dest]}")
+        # Remove from the command
+        _ = self._commands[dest].pop(id)
 
-        # Remove the UI element
+        # Remove from the list data
+        _ = self._listsData[dest][1].pop(id)
+
+        # Remove from the UI
         self.get_widget_by_id(event.button.name).remove()
-        _ = self._listsData[f"{dest}_list"].pop(int(i))
-
-        # Report
-        self._uiLogger.debug(f"List item removed: {event.button.name}")
 
     def bindingSubmit(self) -> None:
         """
