@@ -11,7 +11,7 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical, Horizontal
-from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select
+from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input
 
 from .Logging import getLogger
 
@@ -27,6 +27,7 @@ class Interface(App):
     CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss")
     CLASS_SWITCH = "switchInput"
     CLASS_DROPDOWN = "dropdownInput"
+    CLASS_TYPED_TEXT = "textInput"
 
     BINDINGS = {
         Binding(
@@ -35,7 +36,7 @@ class Interface(App):
             "Quit",
             tooltip="Quit without submitting.",
             show=True,
-            priority=True,
+            # priority=True
         ),
         Binding(
             "ctrl+s",
@@ -43,7 +44,7 @@ class Interface(App):
             "Submit",
             tooltip="Submit.",
             show=True,
-            priority=True,
+            # priority=True
         )
     }
 
@@ -140,12 +141,14 @@ class Interface(App):
                 elif action.type == int:
                     # Add an int input
                     self._uiLogger.warning("Int inputs are not yet supported.")
+                    yield from self._buildTextInput(action) # TODO: Make number specific!
                 elif action.type == float:
                     # Add a float input
-                    self._uiLogger.warning("qwerty inputs are not yet supported.")
+                    self._uiLogger.warning("Float inputs are not yet supported.")
+                    yield from self._buildTextInput(action) # TODO: Make number specific!
                 else:
                     # Add a string input
-                    self._uiLogger.warning("String inputs are not yet supported.")
+                    yield from self._buildTextInput(action)
             else:
                 # Report
                 self._uiLogger.warning(f"Unknown action type: {action}")
@@ -190,6 +193,23 @@ class Interface(App):
             classes="hcontainer"
         )
 
+    def _buildTextInput(self, action: argparse.Action):
+        """
+        Yields a generic text input for the given `action`.
+
+        action: The `argparse` action to build from.
+        """
+        # Add a typed input
+        yield Horizontal(
+            Label(action.dest),
+            Input(
+                placeholder=str(action.metavar or action.dest),
+                type="text",
+                id=action.dest,
+                classes=f"{self.CLASS_TYPED_TEXT}"
+            )
+        )
+
     # Functions
     def getArgs(self) -> Optional[dict[str, Optional[Any]]]:
         """
@@ -207,12 +227,20 @@ class Interface(App):
         self._uiLogger.debug(f"Switch changed: {event.switch.id} -> {event.value}")
 
     @on(Select.Changed, f".{CLASS_DROPDOWN}")
-    def inputSwitchChanged(self, event: Select.Changed) -> None:
+    def inputDropdownChanged(self, event: Select.Changed) -> None:
         """
-        Triggered when an input switch is changed.
+        Triggered when an input dropdown is changed.
         """
         self._commands[event.select.id] = event.value
         self._uiLogger.debug(f"Dropdown changed: {event.select.id} -> {event.value}")
+
+    @on(Input.Changed, f".{CLASS_TYPED_TEXT}")
+    def inputTypedChanged(self, event: Input.Changed) -> None:
+        """
+        Triggered when a typed text input is changed.
+        """
+        self._commands[event.input.id] = event.value
+        self._uiLogger.debug(f"Text changed: {event.input.id} -> {event.value}")
 
     def bindingSubmit(self) -> None:
         """

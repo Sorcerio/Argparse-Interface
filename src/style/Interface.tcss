@@ -13,3 +13,7 @@ Screen {
     content-align: center middle;
     width: auto;
 }
+
+.hcontainer > Input {
+    height: auto;
+}
