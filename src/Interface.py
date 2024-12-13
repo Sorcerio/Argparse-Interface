@@ -363,18 +363,24 @@ class Interface(App):
         """
         Returns the parsed arguments from the interface.
         """
-        # Process the commands
+        # Scope to only active command data
+        validDests = self._getValidDests(self._parser)
+
+        # Filter out any inactive commands
+        filteredCmds = {k: v for k, v in self._commands.items() if k in validDests}
+
+        # Flatten list-based commands
         # TODO: Add UUID order tracking to preserve list element order
         for id in self._listsData.keys():
             # Check if a dict that needs to be flattened
-            if (id in self._commands) and isinstance(self._commands[id], dict):
+            if (id in filteredCmds) and isinstance(filteredCmds[id], dict):
                 # Build the update
-                cmdUpdate = [v for v in self._commands[id].values()]
+                cmdUpdate = [v for v in filteredCmds[id].values()]
 
                 # Apply the update
-                self._commands[id] = cmdUpdate
+                filteredCmds[id] = cmdUpdate
 
-        return self._commands
+        return filteredCmds
 
     # MARK: Private Functions
     def _getParserActions(self, parser: argparse.ArgumentParser) -> list[argparse.Action]:
@@ -385,6 +391,34 @@ class Interface(App):
         parser: The parser to get the actions from.
         """
         return (a for a in parser._actions if not ((self.guiFlag in a.option_strings) or isinstance(a, argparse._HelpAction)))
+
+    def _getValidDests(self, parser: argparse.ArgumentParser) -> list[str]:
+        """
+        Returns a list of valid destinations for the given `ArgumentParser`.
+
+        parser: The parser to get the valid destinations from.
+        """
+        # Loop through the actions
+        validDests = []
+        for action in self._getParserActions(parser):
+            # Check if a subparser
+            if isinstance(action, argparse._SubParsersAction):
+                # Check if present
+                if action.dest in self._commands:
+                    # Loop through subparsers
+                    for subParserKey, subParser in action.choices.items():
+                        # Check if the subparser is active
+                        if self._commands[action.dest] == subParserKey:
+                            # Record the active subparser's action
+                            validDests.append(action.dest)
+
+                            # Check dests in this subparser
+                            validDests.extend(self._getValidDests(subParser))
+            else:
+                # Regular action
+                validDests.append(action.dest)
+
+        return validDests
 
     def _typedStringToValue(self, s: str, inputType: str) -> Optional[Union[str, int, float]]:
         """
