@@ -35,7 +35,7 @@ parser = argparse.ArgumentParser(prog="Demo")
 # `add_argument`, etc...
 
 # Wrap your parser
-interface = Wrapper(parser)
+interface = argui.Wrapper(parser)
 
 # Get arguments in dict format
 args = interface.parseArgs()
