@@ -9,6 +9,7 @@ from typing import Optional, Any
 
 from textual import on
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal
 from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch
 
@@ -25,6 +26,25 @@ class Interface(App):
     # Constants
     CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss")
     CLASS_SWITCH = "switchInput"
+
+    BINDINGS = {
+        Binding(
+            "ctrl+c",
+            "quit",
+            "Quit",
+            tooltip="Quit without submitting.",
+            show=True,
+            priority=True,
+        ),
+        Binding(
+            "ctrl+s",
+            "bindingSubmit",
+            "Submit",
+            tooltip="Submit.",
+            show=True,
+            priority=True,
+        )
+    }
 
     # Constructor
     def __init__(self,
@@ -160,8 +180,14 @@ class Interface(App):
     # Handlers
     @on(Switch.Changed, f".{CLASS_SWITCH}")
     def inputSwitchChanged(self, event: Switch.Changed) -> None:
+        """
+        Triggered when an input switch is changed.
+        """
         self._commands[event.switch.id] = event.value
         self._uiLogger.debug(f"Switch changed: {event.switch.id} -> {event.value}")
 
-    def on_button_pressed(self) -> None:
+    def bindingSubmit(self) -> None:
+        """
+        Triggered whe nthe submit binding is activated.
+        """
         self.exit()

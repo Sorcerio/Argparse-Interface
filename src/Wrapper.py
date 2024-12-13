@@ -80,10 +80,8 @@ class Wrapper:
         )
         gui.run()
 
-        # Report
-        self._logger.info("Gui has been closed.")
-
-        # TODO: Execute this function somewhere appropriate for the gui
+        # Get the arguments
+        self._logger.info("Parsed gui arguments.")
         return gui.getArgs()
 
     # Private Functions

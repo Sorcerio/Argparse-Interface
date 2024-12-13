@@ -53,6 +53,6 @@ def demoCli():
     print("\n")
     if args is not None:
         print("Parsed arguments:\n")
-        pprint(vars(args))
+        pprint(args)
     else:
         print(f"No arguments parsed:\n{args}")
