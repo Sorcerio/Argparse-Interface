@@ -1,6 +1,6 @@
 # Argparse Interface
 
-An automatic, terminal based interface for any Python 3 `argparse` command line.
+An automatic, terminal based interactive interface for any Python 3 `argparse` command line with keyboard and mouse support.
 
 ## Setup
 
