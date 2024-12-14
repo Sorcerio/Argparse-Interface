@@ -16,6 +16,7 @@ from textual.containers import Vertical, Horizontal
 from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input, Button
 
 from .Logging import getLogger
+from .ParserMap import ParserMap
 
 # MARK: Classes
 class Interface(App):
@@ -77,7 +78,8 @@ class Interface(App):
         self.mainSubtitle = subTitle
         self.guiFlag = guiFlag
 
-        self._parser = parser
+        # self._parserMap.parser = parser
+        self._parserMap = ParserMap(parser)
         self._commands: dict[str, Optional[Any]] = {}
         self._listsData: dict[str, tuple[argparse.Action, dict[str, Any]]] = {} # { list id : (action, {list item id : list item}) }
         self._uiLogger = getLogger(logLevel)
@@ -94,12 +96,12 @@ class Interface(App):
         # TODO: Add sidebar with links to each section, group, and input?
 
         # Add content
-        yield Label(self._parser.prog)
+        yield Label(self._parserMap.parser.prog)
 
-        if self._parser.description:
-            yield Label(self._parser.description)
+        if self._parserMap.parser.description:
+            yield Label(self._parserMap.parser.description)
 
-        yield from self._buildParserInterface(self._parser)
+        yield from self._buildParserInterface(self._parserMap.parser)
 
         # TODO: Add epilog if present
         # TODO: Add submit button
@@ -119,7 +121,6 @@ class Interface(App):
 
         parser: The `argparse.ArgumentParser` object to build the UI elements from.
         """
-        parser._action_groups
         yield from self._buildActionInputs(self._getAllParserActions(parser))
 
         # # Create the required section
@@ -400,7 +401,7 @@ class Interface(App):
         Returns the parsed arguments from the interface.
         """
         # Scope to only active command data
-        validDests = self._getValidDests(self._parser)
+        validDests = self._getValidDests(self._parserMap.parser)
 
         # Filter out any inactive commands
         filteredCmds = {k: v for k, v in self._commands.items() if k in validDests}
