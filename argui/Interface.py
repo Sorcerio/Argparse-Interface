@@ -120,7 +120,6 @@ class Interface(App):
             self._commands[action.dest] = (action.default or None)
 
             # Decide what UI to show
-            # TODO: Add `tooltip` to all inputs with their `help` text!
             # TODO: Add default value to all inputs!
             # TODO: Group required and optional fields together visually
             # TODO: Check argparse docs to find any missing deliniations
@@ -219,6 +218,7 @@ class Interface(App):
         return Input(
             value=(str(value) if (value is not None) else None),
             placeholder=str(action.metavar or action.dest),
+            tooltip=action.help,
             type=inputType,
             name=name,
             id=action.dest,
@@ -293,7 +293,8 @@ class Interface(App):
             Button(
                 "Add +",
                 name=listId,
-                classes=f"{self.CLASS_LIST_ADD_BTN}"
+                classes=f"{self.CLASS_LIST_ADD_BTN}",
+                tooltip=f"Add a new item to {action.dest}"
             ),
             classes="itemlist"
         )
@@ -342,7 +343,8 @@ class Interface(App):
                 "X",
                 name=itemId,
                 classes=f"{self.CLASS_LIST_RM_BTN}",
-                variant="error"
+                variant="error",
+                tooltip=f"Remove item"
             ),
             id=itemId,
             classes="item"
