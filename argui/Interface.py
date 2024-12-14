@@ -17,8 +17,6 @@ from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switc
 
 from .Logging import getLogger
 
-# TODO: Add `tooltip` to all inputs with their `help` text!
-
 # MARK: Classes
 class Interface(App):
     """
@@ -122,6 +120,9 @@ class Interface(App):
             self._commands[action.dest] = (action.default or None)
 
             # Decide what UI to show
+            # TODO: Add `tooltip` to all inputs with their `help` text!
+            # TODO: Add default value to all inputs!
+            # TODO: Group required and optional fields together visually
             # TODO: Check argparse docs to find any missing deliniations
             if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
                 # Add a switch
@@ -237,7 +238,11 @@ class Interface(App):
         # Add a typed input
         yield Horizontal(
             Label(action.dest),
-            self._createInput(action, inputType=inputType),
+            self._createInput(
+                action,
+                inputType=inputType,
+                value=(action.default or None)
+            ),
             classes="hcontainer"
         )
 
