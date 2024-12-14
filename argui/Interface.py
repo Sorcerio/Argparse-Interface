@@ -6,7 +6,7 @@ import os
 import argparse
 import logging
 import uuid
-from typing import Union, Optional, Any
+from typing import Union, Optional, Any, Iterable
 
 from textual import on
 from textual.app import App, ComposeResult
@@ -91,13 +91,18 @@ class Interface(App):
         # Add header
         yield Header(icon="⛽") # TODO: User supplied text icon
 
+        # TODO: Add sidebar with links to each section, group, and input?
+
         # Add content
         yield Label(self._parser.prog)
 
         if self._parser.description:
             yield Label(self._parser.description)
 
-        yield from self._buildParserInputs(self._parser)
+        yield from self._buildParserInterface(self._parser)
+
+        # TODO: Add epilog if present
+        # TODO: Add submit button
 
         # Add footer
         yield Footer()
@@ -107,12 +112,30 @@ class Interface(App):
         self.sub_title = self.mainSubtitle
 
     # MARK: UI Builders
-    def _buildParserInputs(self, parser: argparse.ArgumentParser):
+    def _buildParserInterface(self, parser: argparse.ArgumentParser):
         """
-        Yields the UI elements for the parser inputs.
+        Yeilds all UI elements for the given `argparse.ArgumentParser` object chain.
+        UI elements are added to required and optional sections respecting any subparser or group structures.
+
+        parser: The `argparse.ArgumentParser` object to build the UI elements from.
+        """
+        parser._action_groups
+        yield from self._buildActionInputs(self._getAllParserActions(parser))
+
+        # # Create the required section
+        # yield Label("Required Arguments", classes="sectionHeader")
+
+        # # Create the optional section
+        # yield Label("Optional Arguments", classes="sectionHeader")
+
+    def _buildActionInputs(self, actions: Iterable[argparse.Action]):
+        """
+        Yields the UI elements for the given `argparse.Action` objects.
+
+        actions: The `argparse.Action` objects to build the UI elements from.
         """
         # Loop through the parser actions
-        for action in self._getParserActions(parser):
+        for action in actions:
             # Record the parser key
             if action.dest in self._commands:
                 self._uiLogger.warning(f"Duplicate command found: {action.dest}")
@@ -120,8 +143,9 @@ class Interface(App):
             self._commands[action.dest] = (action.default or None)
 
             # Decide what UI to show
-            # TODO: Add default value to all inputs!
+            # TODO: Group groups together visually
             # TODO: Group required and optional fields together visually
+            # TODO: Add support for `nargs=#`
             # TODO: Check argparse docs to find any missing deliniations
             if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
                 # Add a switch
@@ -368,7 +392,7 @@ class Interface(App):
                     if parser.description:
                         yield Label(parser.description)
 
-                    yield from self._buildParserInputs(parser)
+                    yield from self._buildParserInterface(parser)
 
     # MARK: Functions
     def getArgs(self) -> Optional[dict[str, Optional[Any]]]:
@@ -395,7 +419,7 @@ class Interface(App):
         return filteredCmds
 
     # MARK: Private Functions
-    def _getParserActions(self, parser: argparse.ArgumentParser) -> list[argparse.Action]:
+    def _getAllParserActions(self, parser: argparse.ArgumentParser):
         """
         Returns a list of actions from the given `ArgumentParser` that are not excluded action types.
         Help and gui trigger actions are always excluded.
@@ -412,7 +436,7 @@ class Interface(App):
         """
         # Loop through the actions
         validDests = []
-        for action in self._getParserActions(parser):
+        for action in self._getAllParserActions(parser):
             # Check if a subparser
             if isinstance(action, argparse._SubParsersAction):
                 # Check if present
