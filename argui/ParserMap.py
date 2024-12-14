@@ -154,7 +154,7 @@ class ParserMap:
         """
         Generator that excludes actions by their destination.
         """
-        return (a for a in actions if not ((a.option_strings in excludes) or (isinstance(a, argparse._HelpAction) and keepHelp)))
+        return (a for a in actions if not ((a.option_strings in excludes) or (isinstance(a, argparse._HelpAction) and not keepHelp)))
 
     # TODO: Static bool method to ignore help and blacklisted actions
 
