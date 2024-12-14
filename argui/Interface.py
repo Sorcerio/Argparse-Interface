@@ -284,6 +284,7 @@ class Interface(App):
             self._createInput(
                 action,
                 inputType=inputType,
+                classes=self.CLASS_TYPED_TEXT,
                 value=(action.default or None)
             ),
             classes="hcontainer"
@@ -528,7 +529,7 @@ class Interface(App):
         self._uiLogger.debug(f"Text changed: {event.input.id} -> {val} ({type(val)})")
 
     @on(Input.Changed, f".{CLASS_LIST_TEXT}")
-    def inputTypedChanged(self, event: Input.Changed) -> None:
+    def inputTypedInListChanged(self, event: Input.Changed) -> None:
         """
         Triggered when a typed text input *within a list* is changed.
         """
