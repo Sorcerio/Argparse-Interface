@@ -6,4 +6,4 @@ import argui
 
 # MARK: Command Line
 if __name__ == "__main__":
-    argui.demoCli()
+    argui.runDemo()

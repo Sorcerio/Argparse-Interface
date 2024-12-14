@@ -1,4 +1,5 @@
 # Argparse Interface
 from .Wrapper import Wrapper
 from .Interface import Interface
-from .Demo import demoCli
+from .ParserMap import ParserMap
+from .Demo import getDemoArgParser, runDemo
