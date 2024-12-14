@@ -121,9 +121,6 @@ class Interface(App):
 
         parser: The `argparse.ArgumentParser` object to build the UI elements from.
         """
-        # TODO: Group groups together visually
-        # TODO: Group required and optional fields together visually
-
         # Loop through the groups
         for groupIndex, groupData in enumerate(self._parserMap.groupMap.items()):
             # Unpack the data
@@ -173,7 +170,7 @@ class Interface(App):
 
                 # Create the switch
                 yield from self._buildSwitchInput(action)
-            elif isinstance(action, argparse._SubParsersAction): # TODO: NEXT2: Treat mutually exclusive groups like subparsers
+            elif isinstance(action, argparse._SubParsersAction): # TODO: NEXT: Treat mutually exclusive groups like subparsers
                 # Add a subparser group
                 yield from self._buildSubparserGroup(action)
             elif isinstance(action, argparse._StoreAction):
@@ -460,7 +457,7 @@ class Interface(App):
         """
         # Loop through the actions
         validDests = []
-        for action in self._onlyValidActions(parser._actions): # TODO: NEXT3: Fix this!
+        for action in self._onlyValidActions(parser._actions):
             # Check if a subparser
             if isinstance(action, argparse._SubParsersAction):
                 # Check if present

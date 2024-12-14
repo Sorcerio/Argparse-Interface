@@ -156,8 +156,6 @@ class ParserMap:
         """
         return (a for a in actions if not ((a.option_strings in excludes) or (isinstance(a, argparse._HelpAction) and not keepHelp)))
 
-    # TODO: Static bool method to ignore help and blacklisted actions
-
     # MARK: Functions
     def allActions(self) -> list[argparse.Action]:
         """
