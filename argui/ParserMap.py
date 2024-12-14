@@ -4,6 +4,7 @@
 # MARK: Imports
 import uuid
 import argparse
+from typing import Optional, Iterable
 
 # MARK: Classes
 class ParserMap:
@@ -23,6 +24,8 @@ class ParserMap:
         parser: The `argparse.ArgumentParser` object to map.
         """
         self.parser = parser
+
+        # {groupTitle: {"<reqKey>": [action1, action2, ...], "<optKey>": [action1, action2, ...]}}
         self.groupMap = self.deliniateMappedActions(
             self.parser,
             self.mapParserGroups(self.parser)
@@ -127,6 +130,31 @@ class ParserMap:
                         outGroups[groupTitle][optKey].append(action)
 
         return outGroups
+
+    @staticmethod
+    def parseGroupTitle(t: str) -> Optional[str]:
+        """
+        Parses the group title from a string.
+
+        t: The string to parse.
+
+        Returns the group title or `None` if the string is not a group title.
+        """
+        if t.startswith(ParserMap.NO_TITLE_GROUP_FLAG):
+            return None
+
+        return t
+
+    @staticmethod
+    def excludeActionByDest(
+        actions: Iterable[argparse.Action],
+        keepHelp: bool = False,
+        excludes: Optional[list[str]] = None
+    ):
+        """
+        Generator that excludes actions by their destination.
+        """
+        return (a for a in actions if not ((a.option_strings in excludes) or (isinstance(a, argparse._HelpAction) and keepHelp)))
 
     # TODO: Static bool method to ignore help and blacklisted actions
 

@@ -116,18 +116,44 @@ class Interface(App):
     # MARK: UI Builders
     def _buildParserInterface(self, parser: argparse.ArgumentParser):
         """
-        Yeilds all UI elements for the given `argparse.ArgumentParser` object chain.
+        Yields all UI elements for the given `argparse.ArgumentParser` object chain.
         UI elements are added to required and optional sections respecting any subparser or group structures.
 
         parser: The `argparse.ArgumentParser` object to build the UI elements from.
         """
-        yield from self._buildActionInputs(self._getAllParserActions(parser))
+        # TODO: Group groups together visually
+        # TODO: Group required and optional fields together visually
 
-        # # Create the required section
-        # yield Label("Required Arguments", classes="sectionHeader")
+        # Loop through the groups
+        for groupIndex, groupData in enumerate(self._parserMap.groupMap.items()):
+            # Unpack the data
+            groupTitleRaw, groupActions = groupData
 
-        # # Create the optional section
-        # yield Label("Optional Arguments", classes="sectionHeader")
+            # Create the group title
+            if (groupTitle := ParserMap.parseGroupTitle(groupTitleRaw)) is not None:
+                yield Label(groupTitle, classes="header1")
+            else:
+                yield Label(f"Section {groupIndex + 1}", classes="header1")
+
+            # Create the required actions as needed
+            if groupActions[ParserMap.REQ_KEY_REQ]:
+                yield Label("Required", classes="header2")
+                yield from self._buildActionInputs(
+                    ParserMap.excludeActionByDest(
+                        groupActions[ParserMap.REQ_KEY_REQ],
+                        excludes=[self.guiFlag]
+                    )
+                )
+
+            # Create the optional actions as needed
+            if groupActions[ParserMap.REQ_KEY_OPT]:
+                yield Label("Optional", classes="header2")
+                yield from self._buildActionInputs(
+                    ParserMap.excludeActionByDest(
+                        groupActions[ParserMap.REQ_KEY_OPT],
+                        excludes=[self.guiFlag]
+                    )
+                )
 
     def _buildActionInputs(self, actions: Iterable[argparse.Action]):
         """
@@ -144,8 +170,6 @@ class Interface(App):
             self._commands[action.dest] = (action.default or None)
 
             # Decide what UI to show
-            # TODO: Group groups together visually
-            # TODO: Group required and optional fields together visually
             # TODO: Add support for `nargs=#`
             # TODO: Check argparse docs to find any missing deliniations
             if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
@@ -155,9 +179,10 @@ class Interface(App):
 
                 # Create the switch
                 yield from self._buildSwitchInput(action)
-            elif isinstance(action, argparse._SubParsersAction):
+            elif isinstance(action, argparse._SubParsersAction): # TODO: NEXT2: Treat mutually exclusive groups like subparsers
                 # Add a subparser group
-                yield from self._buildSubparserGroup(action)
+                # yield from self._buildSubparserGroup(action) # TODO: NEXT1: Fix subparsers
+                pass
             elif isinstance(action, argparse._StoreAction):
                 # TODO: Add advanced "typed" input types like file select, etc
                 # Decide based on expected type and properties
@@ -420,15 +445,6 @@ class Interface(App):
         return filteredCmds
 
     # MARK: Private Functions
-    def _getAllParserActions(self, parser: argparse.ArgumentParser):
-        """
-        Returns a list of actions from the given `ArgumentParser` that are not excluded action types.
-        Help and gui trigger actions are always excluded.
-
-        parser: The parser to get the actions from.
-        """
-        return (a for a in parser._actions if not ((self.guiFlag in a.option_strings) or isinstance(a, argparse._HelpAction)))
-
     def _getValidDests(self, parser: argparse.ArgumentParser) -> list[str]:
         """
         Returns a list of valid destinations for the given `ArgumentParser`.
@@ -437,7 +453,7 @@ class Interface(App):
         """
         # Loop through the actions
         validDests = []
-        for action in self._getAllParserActions(parser):
+        for action in ParserMap.excludeActionByDest(self._parserMap.allActions(), excludes=[self.guiFlag]): # TODO: NEXT3: Fix this!
             # Check if a subparser
             if isinstance(action, argparse._SubParsersAction):
                 # Check if present
