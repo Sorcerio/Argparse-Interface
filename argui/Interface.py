@@ -27,7 +27,7 @@ class Interface(App):
     Use `Wrapper` to automatically handle the interface.
     """
     # MARK: Constants
-    CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss")
+    CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss") # TODO: Make the interface pretty
     CLASS_SWITCH = "switchInput"
     CLASS_DROPDOWN = "dropdownInput"
     CLASS_TYPED_TEXT = "textInput"
@@ -122,28 +122,25 @@ class Interface(App):
         parser: The `argparse.ArgumentParser` object to build the UI elements from.
         """
         # Loop through the groups
-        for groupIndex, groupData in enumerate(self._parserMap.groupMap.items()):
-            # Unpack the data
-            groupTitleRaw, groupActions = groupData
-
+        for groupIndex, group in enumerate(self._parserMap.groupMap):
             # Create the group title
-            if (groupTitle := ParserMap.parseGroupTitle(groupTitleRaw)) is not None:
-                yield Label(groupTitle, classes="header1")
-            else:
+            if group.isUuidTitle:
                 yield Label(f"Section {groupIndex + 1}", classes="header1")
+            else:
+                yield Label(group.title, classes="header1")
 
             # Create the required actions as needed
-            if groupActions[ParserMap.REQ_KEY_REQ]:
+            if group.reqActions:
                 yield Label("Required", classes="header2")
                 yield from self._buildActionInputs(
-                    self._onlyValidActions(groupActions[ParserMap.REQ_KEY_REQ])
+                    self._onlyValidActions(group.reqActions)
                 )
 
             # Create the optional actions as needed
-            if groupActions[ParserMap.REQ_KEY_OPT]:
+            if group.optActions:
                 yield Label("Optional", classes="header2")
                 yield from self._buildActionInputs(
-                    self._onlyValidActions(groupActions[ParserMap.REQ_KEY_OPT])
+                    self._onlyValidActions(group.optActions)
                 )
 
     def _buildActionInputs(self, actions: Iterable[argparse.Action]):
