@@ -270,7 +270,8 @@ class Interface(App):
         inputType: str = "text",
         name: Optional[str] = None,
         classes: Optional[str] = CLASS_TYPED_TEXT,
-        value: Optional[Union[str, int, float]] = None
+        value: Optional[Union[str, int, float]] = None,
+        metavarIndex: Optional[int] = None
     ) -> Input:
         """
         Creates a setup `Input` object for the given `action`.
@@ -280,6 +281,7 @@ class Interface(App):
         inputType: The type of input to use for the Textual `Input(type=...)` value.
         classes: The classes to add to the input.
         value: The value to set the input to initially.
+        metavarIndex: The index of the `action.metavar` to use for the placeholder when the `action.metavar` is a tuple.
         """
         # Decide validators
         validators = None
@@ -290,17 +292,14 @@ class Interface(App):
 
         # Decide placeholder
         if isinstance(action.metavar, tuple):
-            # TODO: Find a way to link the index of the input to the index of the metavar
-            placeholder = action.dest
-        elif action.metavar:
-            placeholder = str(action.metavar)
+            placeholder = (str(action.metavar[metavarIndex]) if (isinstance(metavarIndex, int) and (0 <= metavarIndex < len(action.metavar))) else action.dest)
         else:
-            placeholder = action.dest
+            placeholder = (str(action.metavar) if action.metavar else action.dest)
 
         # Send the input
         return Input(
             value=(str(value) if (value is not None) else None),
-            placeholder=placeholder,
+            placeholder=placeholder.upper(),
             tooltip=action.help,
             type=inputType,
             name=name,
@@ -344,7 +343,7 @@ class Interface(App):
         if isinstance(self._commands[action.dest], list):
             # Process the default values
             cmdUpdate = {}
-            for v in self._commands[action.dest]:
+            for i, val in enumerate(self._commands[action.dest]):
                 # Get item id
                 itemId = str(uuid.uuid4())
 
@@ -352,19 +351,21 @@ class Interface(App):
                 items[itemId] = self._buildListInputItem(
                     itemId,
                     action,
-                    value=v,
-                    showRemove=showAddRemove
+                    value=val,
+                    showRemove=showAddRemove,
+                    metavarIndex=i
                 )
 
                 # Add to command update
-                cmdUpdate[itemId] = v
+                cmdUpdate[itemId] = val
 
             # Update the command
             self._commands[action.dest] = cmdUpdate
 
         # Add remaining inputs for nargs
-        if isinstance(action.nargs, int) and (len(items) < action.nargs):
-            for _ in range(action.nargs - len(items)):
+        itemCount = len(items)
+        if isinstance(action.nargs, int) and (itemCount < action.nargs):
+            for i in range(itemCount, (action.nargs - itemCount)):
                 # Get item id
                 itemId = str(uuid.uuid4())
 
@@ -372,7 +373,8 @@ class Interface(App):
                 items[itemId] = self._buildListInputItem(
                     itemId,
                     action,
-                    showRemove=showAddRemove
+                    showRemove=showAddRemove,
+                    metavarIndex=i
                 )
 
         # Prepare the id for this list
@@ -411,7 +413,8 @@ class Interface(App):
         id: str,
         action: argparse.Action,
         value: Optional[str] = None,
-        showRemove: bool = True
+        showRemove: bool = True,
+        metavarIndex: Optional[int] = None
     ):
         """
         Yields a list input item for the given `action`.
@@ -420,6 +423,7 @@ class Interface(App):
         action: The `argparse` action to build from.
         value: The initial value for this list item.
         showRemove: If `True`, the remove button will be shown for this list item.
+        metavarIndex: The index of the `action.metavar` to use for the placeholder when the `action.metavar` is a tuple.
         """
         # Prepare the id for this list item
         itemId = f"{action.dest}_{id}"
@@ -447,7 +451,8 @@ class Interface(App):
             inputType=inputType,
             name=itemId,
             classes=self.CLASS_LIST_TEXT,
-            value=value
+            value=value,
+            metavarIndex=metavarIndex
         )
 
         # Prepare the children
