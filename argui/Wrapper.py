@@ -39,13 +39,13 @@ class Wrapper:
         self._addGuiArgument(self._parser)
 
     # Functions
-    def parseArgs(self) -> Optional[dict[str, Optional[Any]]]:
+    def parseArgs(self) -> argparse.Namespace:
         """
         Parses the arguments using the method defined by the cli flags.
         Will open the gui if prompted.
         Otherwise, will parse the cli arguments as normal.
 
-        Returns any parsed arguments.
+        Returns any parsed arguments as an `argparse.Namespace` object.
         """
         # Create gui argument parser
         guiArgParser = argparse.ArgumentParser(add_help=False)
@@ -62,14 +62,14 @@ class Wrapper:
         else:
             # Get args from cli
             self._logger.info("Parsing cli arguments.")
-            return vars(self._parser.parse_args())
+            return self._parser.parse_args()
 
-    def parseArgsWithGui(self) -> Optional[dict[str, Optional[Any]]]:
+    def parseArgsWithGui(self) -> argparse.Namespace:
         """
-        Helper function that explicitly presents the gui and parses provided arguments.
+        Explicitly presents the gui (as opposed to the cli or gui) and parses provided arguments.
         The gui flag will be ignored.
 
-        Returns any parsed arguments.
+        Returns any parsed arguments as an `argparse.Namespace` object.
         """
         # Startup the Gui
         gui = Interface(

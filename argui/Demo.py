@@ -74,6 +74,10 @@ def getDemoArgParser() -> argparse.ArgumentParser:
 def runDemo():
     """
     Runs a demonstration of the `argparse` interface with the Argparse Interface attached.
+
+    For CLI: `python .\demo.py -bf -m2A 1 -m3A 2 3 foo`
+
+    For GUI: `python .\demo.py --gui`
     """
     # Get the parser
     parser = getDemoArgParser()
@@ -89,6 +93,6 @@ def runDemo():
     print("\n")
     if args is not None:
         print("Parsed arguments:\n")
-        pprint({k: f"{v} ({type(v).__name__})" for k, v in args.items()})
+        pprint({k: f"{v} ({type(v).__name__})" for k, v in vars(args).items()})
     else:
         print(f"No arguments parsed:\n{args}")

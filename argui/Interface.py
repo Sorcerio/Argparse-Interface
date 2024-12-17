@@ -189,7 +189,7 @@ class Interface(App):
             self._commands[action.dest] = (action.default or None)
 
             # Decide what UI to show
-            # TODO: Add support for `nargs=#`
+            # TODO: NEXT: Add support for `nargs=#` (how to get the inputs to do it right? interpret them as a list instead? with limited "adds"?)
             # TODO: Check argparse docs to find any missing deliniations
             if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
                 # Add a switch
@@ -198,7 +198,7 @@ class Interface(App):
 
                 # Create the switch
                 yield from self._buildSwitchInput(action)
-            elif isinstance(action, argparse._SubParsersAction): # TODO: NEXT: Treat mutually exclusive groups like subparsers
+            elif isinstance(action, argparse._SubParsersAction):
                 # Add a subparser group
                 yield from self._buildSubparserGroup(action)
             elif isinstance(action, argparse._StoreAction):
@@ -207,7 +207,7 @@ class Interface(App):
                 if (action.choices is not None):
                     # Add a combo box input
                     yield from self._buildDropdownInput(action)
-                elif (action.nargs == "+"):
+                elif ((action.nargs == "+") or (action.nargs == "*")):
                     # Add a list input
                     yield from self._buildListInput(action)
                 elif action.type == int:
@@ -441,9 +441,9 @@ class Interface(App):
                     yield from self._buildActionInputs(self._onlyValidActions(parser._actions))
 
     # MARK: Functions
-    def getArgs(self) -> Optional[dict[str, Optional[Any]]]:
+    def getArgs(self) -> argparse.Namespace:
         """
-        Returns the parsed arguments from the interface.
+        Returns the arguments parsed from the interface.
         """
         # Scope to only active command data
         validDests = self._getValidDests(self._parserMap.parser)
@@ -462,7 +462,8 @@ class Interface(App):
                 # Apply the update
                 filteredCmds[id] = cmdUpdate
 
-        return filteredCmds
+        # return filteredCmds
+        return argparse.Namespace(**filteredCmds)
 
     # MARK: Private Functions
     def _onlyValidActions(self, actions: list[argparse.Action]) -> list[argparse.Action]:
