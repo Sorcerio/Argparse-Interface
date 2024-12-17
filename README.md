@@ -32,16 +32,18 @@ import argui
 # Setup your ArgumentParser normally
 parser = argparse.ArgumentParser(prog="Demo")
 
-# `add_argument`, etc...
+# `add_argument`, `add_argument_group`, etc...
 
 # Wrap your parser
 interface = argui.Wrapper(parser)
 
-# Get arguments in dict format
-args = interface.parseArgs()
+# Get arguments
+args: argparse.Namespace = interface.parseArgs()
 
-# Update references to use `args["<key>"]` instead of `args.<key>`
+# `args` is the same as if you had called `parser.parse_args()`
 ```
+
+See [Demo.py](./argui/Demo.py) for more information.
 
 ### Use the Command Line
 

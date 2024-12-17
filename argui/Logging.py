@@ -5,6 +5,8 @@
 import logging
 
 # MARK: Constants
+LOG_TO_FILE = False
+LOG_FILENAME = "argui.log"
 LOGGER_NAME = "ArgparseInterface"
 
 # MARK: Function
@@ -27,5 +29,12 @@ def getLogger(level: int, name: str = LOGGER_NAME) -> logging.Logger:
     logHandler.setFormatter(formatter)
 
     logger.addHandler(logHandler)
+
+    # Setup file log
+    if LOG_TO_FILE:
+        fileHandler = logging.FileHandler(LOG_FILENAME)
+        fileHandler.setLevel(level)
+        fileHandler.setFormatter(formatter)
+        logger.addHandler(fileHandler)
 
     return logger

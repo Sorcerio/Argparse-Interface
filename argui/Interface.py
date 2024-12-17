@@ -17,6 +17,7 @@ from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switc
 
 from .Logging import getLogger
 from .ParserMap import ParserMap
+from .ParserGroup import ParserGroup
 
 # MARK: Classes
 class Interface(App):
@@ -27,14 +28,15 @@ class Interface(App):
     Use `Wrapper` to automatically handle the interface.
     """
     # MARK: Constants
-    CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss")
+    CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss") # TODO: Make the interface pretty
     CLASS_SWITCH = "switchInput"
     CLASS_DROPDOWN = "dropdownInput"
     CLASS_TYPED_TEXT = "textInput"
     CLASS_LIST_RM_BTN = "listRemoveButton"
     CLASS_LIST_ADD_BTN = "listAddButton"
     CLASS_LIST_TEXT = "listInput"
-    CLASS_TABS_CONTAINER = "tabsContainer"
+    CLASS_SUBPARSER_TAB_BOX = "subparserContainer"
+    CLASS_EXCLUSIVE_TAB_BOX = "exclusiveContainer"
 
     BINDINGS = {
         Binding(
@@ -101,9 +103,11 @@ class Interface(App):
         if self._parserMap.parser.description:
             yield Label(self._parserMap.parser.description)
 
-        yield from self._buildParserInterface(self._parserMap.parser)
+        yield from self._buildParserInterface()
 
-        # TODO: Add epilog if present
+        if self._parserMap.parser.epilog:
+            yield Label(self._parserMap.parser.epilog)
+
         # TODO: Add submit button
 
         # Add footer
@@ -114,20 +118,63 @@ class Interface(App):
         self.sub_title = self.mainSubtitle
 
     # MARK: UI Builders
-    def _buildParserInterface(self, parser: argparse.ArgumentParser):
+    def _buildParserInterface(self):
         """
-        Yeilds all UI elements for the given `argparse.ArgumentParser` object chain.
+        Yields all UI elements for the given `argparse.ArgumentParser` object chain.
         UI elements are added to required and optional sections respecting any subparser or group structures.
 
         parser: The `argparse.ArgumentParser` object to build the UI elements from.
         """
-        yield from self._buildActionInputs(self._getAllParserActions(parser))
+        # Loop through the groups
+        for groupIndex, group in enumerate(self._parserMap.groupMap):
+            # Create the group title
+            if group.isUuidTitle:
+                yield Label(f"Section {groupIndex + 1}", classes="header1")
+            else:
+                yield Label(group.title, classes="header1")
 
-        # # Create the required section
-        # yield Label("Required Arguments", classes="sectionHeader")
+            # Check if the group is mutually exclusive
+            if group.isExclusive:
+                yield from self._buildTabbedGroupSections(group)
+            else:
+                # Create normal layout
+                yield from self._buildGroupSections(group)
 
-        # # Create the optional section
-        # yield Label("Optional Arguments", classes="sectionHeader")
+    def _buildGroupSections(self, group: ParserGroup):
+        """
+        Yields all the UI elements for the actions of any given `ParserGroup`.
+
+        group: The `ParserGroup` to build the UI elements from.
+        """
+        # Create the required actions as needed
+        if group.reqActions:
+            yield Label("Required", classes="header2")
+            yield from self._buildActionInputs(
+                self._onlyValidActions(group.reqActions)
+            )
+
+        # Create the optional actions as needed
+        if group.optActions:
+            yield Label("Optional", classes="header2")
+            yield from self._buildActionInputs(
+                self._onlyValidActions(group.optActions)
+            )
+
+    def _buildTabbedGroupSections(self, group: ParserGroup):
+        """
+        Yields UI elements for actions of any given `ParserGroup` in tabbed sections.
+        """
+        # Add tabs for inputs
+        with TabbedContent(id=f"group_{group.title}", classes=self.CLASS_EXCLUSIVE_TAB_BOX):
+            for action in group.allActions():
+                # Create the tab
+                with TabPane(action.dest):
+                    # Add description
+                    if action.help:
+                        yield Label(action.help)
+
+                    # Add the input
+                    yield from self._buildActionInputs([action])
 
     def _buildActionInputs(self, actions: Iterable[argparse.Action]):
         """
@@ -144,9 +191,6 @@ class Interface(App):
             self._commands[action.dest] = (action.default or None)
 
             # Decide what UI to show
-            # TODO: Group groups together visually
-            # TODO: Group required and optional fields together visually
-            # TODO: Add support for `nargs=#`
             # TODO: Check argparse docs to find any missing deliniations
             if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
                 # Add a switch
@@ -164,9 +208,14 @@ class Interface(App):
                 if (action.choices is not None):
                     # Add a combo box input
                     yield from self._buildDropdownInput(action)
-                elif (action.nargs == "+"):
+                elif ((action.nargs == argparse.ONE_OR_MORE) or
+                      (action.nargs == argparse.ZERO_OR_MORE) or
+                      (isinstance(action.nargs, int) and (action.nargs > 1))):
                     # Add a list input
-                    yield from self._buildListInput(action)
+                    yield from self._buildListInput(
+                        action,
+                        showAddRemove=(not (isinstance(action.nargs, int) and (action.nargs > 1)))
+                    )
                 elif action.type == int:
                     # Add an int input
                     yield from self._buildTypedInput(action, inputType="integer")
@@ -222,7 +271,8 @@ class Interface(App):
         inputType: str = "text",
         name: Optional[str] = None,
         classes: Optional[str] = CLASS_TYPED_TEXT,
-        value: Optional[Union[str, int, float]] = None
+        value: Optional[Union[str, int, float]] = None,
+        metavarIndex: Optional[int] = None
     ) -> Input:
         """
         Creates a setup `Input` object for the given `action`.
@@ -232,6 +282,7 @@ class Interface(App):
         inputType: The type of input to use for the Textual `Input(type=...)` value.
         classes: The classes to add to the input.
         value: The value to set the input to initially.
+        metavarIndex: The index of the `action.metavar` to use for the placeholder when the `action.metavar` is a tuple.
         """
         # Decide validators
         validators = None
@@ -240,9 +291,16 @@ class Interface(App):
         elif action.type == float:
             validators = [Number()]
 
+        # Decide placeholder
+        if isinstance(action.metavar, tuple):
+            placeholder = (str(action.metavar[metavarIndex]) if (isinstance(metavarIndex, int) and (0 <= metavarIndex < len(action.metavar))) else action.dest)
+        else:
+            placeholder = (str(action.metavar) if action.metavar else action.dest)
+
+        # Send the input
         return Input(
             value=(str(value) if (value is not None) else None),
-            placeholder=str(action.metavar or action.dest),
+            placeholder=placeholder.upper(),
             tooltip=action.help,
             type=inputType,
             name=name,
@@ -266,25 +324,27 @@ class Interface(App):
             self._createInput(
                 action,
                 inputType=inputType,
+                classes=self.CLASS_TYPED_TEXT,
                 value=(action.default or None)
             ),
             classes="hcontainer"
         )
 
-    def _buildListInput(self, action: argparse.Action):
+    def _buildListInput(self, action: argparse.Action, showAddRemove: bool = True):
         """
         Yields a list input for the given `action`.
 
         action: The `argparse` action to build from.
+        showAddRemove: If `True`, the add and remove buttons will be shown with a max count defined by `action.nargs`.
         """
         # Prepare item list
         items: dict[str, Any] = {}
 
-        # Add initial values if present
+        # Add default values if present
         if isinstance(self._commands[action.dest], list):
-            # Process the initial values
+            # Process the default values
             cmdUpdate = {}
-            for v in self._commands[action.dest]:
+            for i, val in enumerate(self._commands[action.dest]):
                 # Get item id
                 itemId = str(uuid.uuid4())
 
@@ -292,14 +352,31 @@ class Interface(App):
                 items[itemId] = self._buildListInputItem(
                     itemId,
                     action,
-                    value=v
+                    value=val,
+                    showRemove=showAddRemove,
+                    metavarIndex=i
                 )
 
                 # Add to command update
-                cmdUpdate[itemId] = v
+                cmdUpdate[itemId] = val
 
             # Update the command
             self._commands[action.dest] = cmdUpdate
+
+        # Add remaining inputs for nargs
+        itemCount = len(items)
+        if isinstance(action.nargs, int) and (itemCount < action.nargs):
+            for i in range(itemCount, (action.nargs - itemCount)):
+                # Get item id
+                itemId = str(uuid.uuid4())
+
+                # Add the UI item to items
+                items[itemId] = self._buildListInputItem(
+                    itemId,
+                    action,
+                    showRemove=showAddRemove,
+                    metavarIndex=i
+                )
 
         # Prepare the id for this list
         listId = action.dest
@@ -307,30 +384,47 @@ class Interface(App):
         # Create record of the list items
         self._listsData[listId] = (action, items)
 
-        # Add a list input
-        yield Vertical(
+        # Prepare the children
+        children = [
             Label(action.dest),
             Vertical(
                 *items.values(),
                 id=listId,
                 classes="vcontainer"
-            ),
-            Button(
+            )
+        ]
+
+        if showAddRemove:
+            children.append(Button(
                 "Add +",
+                id=f"{listId}_add",
                 name=listId,
                 classes=f"{self.CLASS_LIST_ADD_BTN}",
-                tooltip=f"Add a new item to {action.dest}"
-            ),
+                tooltip=f"Add a new item to {action.dest}",
+                disabled=((len(items) >= action.nargs) if isinstance(action.nargs, int) else False)
+            ))
+
+        # Add a list input
+        yield Vertical(
+            *children,
             classes="itemlist"
         )
 
-    def _buildListInputItem(self, id: str, action: argparse.Action, value: Optional[str] = None):
+    def _buildListInputItem(self,
+        id: str,
+        action: argparse.Action,
+        value: Optional[str] = None,
+        showRemove: bool = True,
+        metavarIndex: Optional[int] = None
+    ):
         """
         Yields a list input item for the given `action`.
 
         id: The identifier for this list item.
         action: The `argparse` action to build from.
         value: The initial value for this list item.
+        showRemove: If `True`, the remove button will be shown for this list item.
+        metavarIndex: The index of the `action.metavar` to use for the placeholder when the `action.metavar` is a tuple.
         """
         # Prepare the id for this list item
         itemId = f"{action.dest}_{id}"
@@ -358,19 +452,27 @@ class Interface(App):
             inputType=inputType,
             name=itemId,
             classes=self.CLASS_LIST_TEXT,
-            value=value
+            value=value,
+            metavarIndex=metavarIndex
         )
 
-        # Add a list input item
-        return Horizontal(
-            inputField,
-            Button(
+        # Prepare the children
+        children = [
+            inputField
+        ]
+
+        if showRemove:
+            children.append(Button(
                 "X",
                 name=itemId,
                 classes=f"{self.CLASS_LIST_RM_BTN}",
                 variant="error",
                 tooltip=f"Remove item"
-            ),
+            ))
+
+        # Add a list input item
+        return Horizontal(
+            *children,
             id=itemId,
             classes="item"
         )
@@ -382,7 +484,7 @@ class Interface(App):
         action: The `argparse` action to build from.
         """
         # Add tabs for subparsers
-        with TabbedContent(id=action.dest, classes=self.CLASS_TABS_CONTAINER):
+        with TabbedContent(id=action.dest, classes=self.CLASS_SUBPARSER_TAB_BOX):
             # Loop through subparsers
             parserKey: str
             parser: argparse.ArgumentParser
@@ -393,12 +495,13 @@ class Interface(App):
                     if parser.description:
                         yield Label(parser.description)
 
-                    yield from self._buildParserInterface(parser)
+                    # yield from self._buildParserInterface(parser)
+                    yield from self._buildActionInputs(self._onlyValidActions(parser._actions))
 
     # MARK: Functions
-    def getArgs(self) -> Optional[dict[str, Optional[Any]]]:
+    def getArgs(self) -> argparse.Namespace:
         """
-        Returns the parsed arguments from the interface.
+        Returns the arguments parsed from the interface.
         """
         # Scope to only active command data
         validDests = self._getValidDests(self._parserMap.parser)
@@ -407,7 +510,6 @@ class Interface(App):
         filteredCmds = {k: v for k, v in self._commands.items() if k in validDests}
 
         # Flatten list-based commands
-        # TODO: Add UUID order tracking to preserve list element order
         for id in self._listsData.keys():
             # Check if a dict that needs to be flattened
             if (id in filteredCmds) and isinstance(filteredCmds[id], dict):
@@ -417,17 +519,21 @@ class Interface(App):
                 # Apply the update
                 filteredCmds[id] = cmdUpdate
 
-        return filteredCmds
+        # return filteredCmds
+        return argparse.Namespace(**filteredCmds)
 
     # MARK: Private Functions
-    def _getAllParserActions(self, parser: argparse.ArgumentParser):
+    def _onlyValidActions(self, actions: list[argparse.Action]) -> list[argparse.Action]:
         """
-        Returns a list of actions from the given `ArgumentParser` that are not excluded action types.
-        Help and gui trigger actions are always excluded.
-
-        parser: The parser to get the actions from.
+        Gets the valid actions for the given `ArgumentParser` using rules from this Interface.
         """
-        return (a for a in parser._actions if not ((self.guiFlag in a.option_strings) or isinstance(a, argparse._HelpAction)))
+        return ParserMap.excludeActionByDest(
+            actions,
+            keepHelp=False,
+            excludes=[
+                self.guiFlag
+            ]
+        )
 
     def _getValidDests(self, parser: argparse.ArgumentParser) -> list[str]:
         """
@@ -437,7 +543,7 @@ class Interface(App):
         """
         # Loop through the actions
         validDests = []
-        for action in self._getAllParserActions(parser):
+        for action in self._onlyValidActions(parser._actions):
             # Check if a subparser
             if isinstance(action, argparse._SubParsersAction):
                 # Check if present
@@ -506,7 +612,7 @@ class Interface(App):
         self._uiLogger.debug(f"Text changed: {event.input.id} -> {val} ({type(val)})")
 
     @on(Input.Changed, f".{CLASS_LIST_TEXT}")
-    def inputTypedChanged(self, event: Input.Changed) -> None:
+    def inputTypedInListChanged(self, event: Input.Changed) -> None:
         """
         Triggered when a typed text input *within a list* is changed.
         """
@@ -545,24 +651,35 @@ class Interface(App):
         # Add a new item to the ui
         self.get_widget_by_id(event.button.name).mount(listItem)
 
+        # Check if the list is full
+        if isinstance(action.nargs, int) and (len(listItems) >= action.nargs):
+            event.button.disabled = True
+            return
+
     @on(Button.Pressed, f".{CLASS_LIST_RM_BTN}")
     def listRemoveButtonPressed(self, event: Button.Pressed) -> None:
         """
         Triggered when a list remove button is pressed.
         """
         # Get the target
-        dest, id = event.button.name.split("_")
+        dest, listId = event.button.name.split("_")
+        action, listItems = self._listsData[dest]
 
         # Remove from the command
-        _ = self._commands[dest].pop(id)
+        _ = self._commands[dest].pop(listId)
 
         # Remove from the list data
-        _ = self._listsData[dest][1].pop(id)
+        del listItems[listId]
 
         # Remove from the UI
         self.get_widget_by_id(event.button.name).remove()
 
-    @on(TabbedContent.TabActivated, f".{CLASS_TABS_CONTAINER}")
+        # Check if list is no longer full
+        if isinstance(action.nargs, int) and (len(listItems) < action.nargs):
+            if addBtn := self.get_widget_by_id(f"{dest}_add"):
+                addBtn.disabled = False
+
+    @on(TabbedContent.TabActivated, f".{CLASS_SUBPARSER_TAB_BOX}")
     def tabActivated(self, event: TabbedContent.TabActivated) -> None:
         """
         Triggered when a tab is activated.

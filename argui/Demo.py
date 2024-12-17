@@ -27,7 +27,8 @@ def getDemoArgParser() -> argparse.ArgumentParser:
     parser.add_argument("-bt", "--boolTrue", action="store_true", help="A boolean argument")
     parser.add_argument("-bf", "--boolFalse", action="store_false", help="A boolean argument", required=True)
     parser.add_argument("-c", "--choice", type=int, choices=[1, 2, 3], help="A choice argument")
-    parser.add_argument("-sz", "--size", help="Specific number of nargs", metavar=("WIDTH", "HEIGHT"), default=None, nargs=2)
+    parser.add_argument("-sz", "--size", help="A specific number of nargs", metavar=("WIDTH", "HEIGHT"), nargs=2)
+    parser.add_argument("-a", "--area", help="A specific number of nargs with a default", metavar=("WIDTH", "HEIGHT", "LENGTH"), default=[10, 12, 15], nargs=3)
     parser.add_argument("-l", "--list", nargs="+", help="A list argument")
     parser.add_argument("-ld", "--defaultList", nargs="+", default=[69, 420, 1337], type=int, help="A list argument")
 
@@ -62,7 +63,7 @@ def getDemoArgParser() -> argparse.ArgumentParser:
 
     bar_parser = subparsers.add_parser("bar")
     bar_parser.add_argument("y", type=float)
-    bar_parser.add_argument("-s", "--string", type=str, help="A string argument")
+    bar_parser.add_argument("-s2", "--string2", type=str, help="A string argument")
 
     third_parser = subparsers.add_parser("third")
     third_parser.add_argument("-b", action="store_true", help="A boolean argument")
@@ -74,6 +75,10 @@ def getDemoArgParser() -> argparse.ArgumentParser:
 def runDemo():
     """
     Runs a demonstration of the `argparse` interface with the Argparse Interface attached.
+
+    For CLI: `python .\demo.py -bf -m2A 1 -m3A 2 3 foo`
+
+    For GUI: `python .\demo.py --gui`
     """
     # Get the parser
     parser = getDemoArgParser()
@@ -89,6 +94,6 @@ def runDemo():
     print("\n")
     if args is not None:
         print("Parsed arguments:\n")
-        pprint({k: f"{v} ({type(v).__name__})" for k, v in args.items()})
+        pprint({k: f"{v} ({type(v).__name__})" for k, v in vars(args).items()})
     else:
         print(f"No arguments parsed:\n{args}")
