@@ -17,6 +17,7 @@ from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switc
 
 from .Logging import getLogger
 from .ParserMap import ParserMap
+from .ParserGroup import ParserGroup
 
 # MARK: Classes
 class Interface(App):
@@ -34,7 +35,8 @@ class Interface(App):
     CLASS_LIST_RM_BTN = "listRemoveButton"
     CLASS_LIST_ADD_BTN = "listAddButton"
     CLASS_LIST_TEXT = "listInput"
-    CLASS_TABS_CONTAINER = "tabsContainer"
+    CLASS_SUBPARSER_TAB_BOX = "subparserContainer"
+    CLASS_EXCLUSIVE_TAB_BOX = "exclusiveContainer"
 
     BINDINGS = {
         Binding(
@@ -129,19 +131,48 @@ class Interface(App):
             else:
                 yield Label(group.title, classes="header1")
 
-            # Create the required actions as needed
-            if group.reqActions:
-                yield Label("Required", classes="header2")
-                yield from self._buildActionInputs(
-                    self._onlyValidActions(group.reqActions)
-                )
+            # Check if the group is mutually exclusive
+            if group.isExclusive:
+                yield from self._buildTabbedGroupSections(group)
+            else:
+                # Create normal layout
+                yield from self._buildGroupSections(group)
 
-            # Create the optional actions as needed
-            if group.optActions:
-                yield Label("Optional", classes="header2")
-                yield from self._buildActionInputs(
-                    self._onlyValidActions(group.optActions)
-                )
+    def _buildGroupSections(self, group: ParserGroup):
+        """
+        Yields all the UI elements for the actions of any given `ParserGroup`.
+
+        group: The `ParserGroup` to build the UI elements from.
+        """
+        # Create the required actions as needed
+        if group.reqActions:
+            yield Label("Required", classes="header2")
+            yield from self._buildActionInputs(
+                self._onlyValidActions(group.reqActions)
+            )
+
+        # Create the optional actions as needed
+        if group.optActions:
+            yield Label("Optional", classes="header2")
+            yield from self._buildActionInputs(
+                self._onlyValidActions(group.optActions)
+            )
+
+    def _buildTabbedGroupSections(self, group: ParserGroup):
+        """
+        Yields UI elements for actions of any given `ParserGroup` in tabbed sections.
+        """
+        # Add tabs for inputs
+        with TabbedContent(id=f"group_{group.title}", classes=self.CLASS_EXCLUSIVE_TAB_BOX):
+            for action in group.allActions():
+                # Create the tab
+                with TabPane(action.dest):
+                    # Add description
+                    if action.help:
+                        yield Label(action.help)
+
+                    # Add the input
+                    yield from self._buildActionInputs([action])
 
     def _buildActionInputs(self, actions: Iterable[argparse.Action]):
         """
@@ -395,7 +426,7 @@ class Interface(App):
         action: The `argparse` action to build from.
         """
         # Add tabs for subparsers
-        with TabbedContent(id=action.dest, classes=self.CLASS_TABS_CONTAINER):
+        with TabbedContent(id=action.dest, classes=self.CLASS_SUBPARSER_TAB_BOX):
             # Loop through subparsers
             parserKey: str
             parser: argparse.ArgumentParser
@@ -579,7 +610,7 @@ class Interface(App):
         # Remove from the UI
         self.get_widget_by_id(event.button.name).remove()
 
-    @on(TabbedContent.TabActivated, f".{CLASS_TABS_CONTAINER}")
+    @on(TabbedContent.TabActivated, f".{CLASS_SUBPARSER_TAB_BOX}")
     def tabActivated(self, event: TabbedContent.TabActivated) -> None:
         """
         Triggered when a tab is activated.
