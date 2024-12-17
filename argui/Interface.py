@@ -336,9 +336,9 @@ class Interface(App):
         # Prepare item list
         items: dict[str, Any] = {}
 
-        # Add initial values if present
+        # Add default values if present
         if isinstance(self._commands[action.dest], list):
-            # Process the initial values
+            # Process the default values
             cmdUpdate = {}
             for v in self._commands[action.dest]:
                 # Get item id
@@ -356,6 +356,18 @@ class Interface(App):
 
             # Update the command
             self._commands[action.dest] = cmdUpdate
+
+        # Add remaining inputs for nargs
+        if isinstance(action.nargs, int) and (len(items) < action.nargs):
+            for _ in range(action.nargs - len(items)):
+                # Get item id
+                itemId = str(uuid.uuid4())
+
+                # Add the UI item to items
+                items[itemId] = self._buildListInputItem(
+                    itemId,
+                    action
+                )
 
         # Prepare the id for this list
         listId = action.dest

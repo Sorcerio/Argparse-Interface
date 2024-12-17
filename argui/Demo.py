@@ -27,7 +27,8 @@ def getDemoArgParser() -> argparse.ArgumentParser:
     parser.add_argument("-bt", "--boolTrue", action="store_true", help="A boolean argument")
     parser.add_argument("-bf", "--boolFalse", action="store_false", help="A boolean argument", required=True)
     parser.add_argument("-c", "--choice", type=int, choices=[1, 2, 3], help="A choice argument")
-    parser.add_argument("-sz", "--size", help="A specific number of nargs", metavar=("WIDTH", "HEIGHT"), default=None, nargs=2)
+    parser.add_argument("-sz", "--size", help="A specific number of nargs", metavar=("WIDTH", "HEIGHT"), nargs=2)
+    parser.add_argument("-a", "--area", help="A specific number of nargs with a default", metavar=("WIDTH", "HEIGHT", "LENGTH"), default=[10, 12, 15], nargs=3)
     parser.add_argument("-l", "--list", nargs="+", help="A list argument")
     parser.add_argument("-ld", "--defaultList", nargs="+", default=[69, 420, 1337], type=int, help="A list argument")
 
