@@ -211,7 +211,10 @@ class Interface(App):
                       (action.nargs == argparse.ZERO_OR_MORE) or
                       (isinstance(action.nargs, int) and (action.nargs > 1))):
                     # Add a list input
-                    yield from self._buildListInput(action)
+                    yield from self._buildListInput(
+                        action,
+                        showAddRemove=(not (isinstance(action.nargs, int) and (action.nargs > 1)))
+                    )
                 elif action.type == int:
                     # Add an int input
                     yield from self._buildTypedInput(action, inputType="integer")
@@ -327,11 +330,12 @@ class Interface(App):
             classes="hcontainer"
         )
 
-    def _buildListInput(self, action: argparse.Action):
+    def _buildListInput(self, action: argparse.Action, showAddRemove: bool = True):
         """
         Yields a list input for the given `action`.
 
         action: The `argparse` action to build from.
+        showAddRemove: If `True`, the add and remove buttons will be shown with a max count defined by `action.nargs`.
         """
         # Prepare item list
         items: dict[str, Any] = {}
@@ -348,7 +352,8 @@ class Interface(App):
                 items[itemId] = self._buildListInputItem(
                     itemId,
                     action,
-                    value=v
+                    value=v,
+                    showRemove=showAddRemove
                 )
 
                 # Add to command update
@@ -366,7 +371,8 @@ class Interface(App):
                 # Add the UI item to items
                 items[itemId] = self._buildListInputItem(
                     itemId,
-                    action
+                    action,
+                    showRemove=showAddRemove
                 )
 
         # Prepare the id for this list
@@ -375,32 +381,45 @@ class Interface(App):
         # Create record of the list items
         self._listsData[listId] = (action, items)
 
-        # Add a list input
-        yield Vertical(
+        # Prepare the children
+        children = [
             Label(action.dest),
             Vertical(
                 *items.values(),
                 id=listId,
                 classes="vcontainer"
-            ),
-            Button(
+            )
+        ]
+
+        if showAddRemove:
+            children.append(Button(
                 "Add +",
                 id=f"{listId}_add",
                 name=listId,
                 classes=f"{self.CLASS_LIST_ADD_BTN}",
                 tooltip=f"Add a new item to {action.dest}",
                 disabled=((len(items) >= action.nargs) if isinstance(action.nargs, int) else False)
-            ),
+            ))
+
+        # Add a list input
+        yield Vertical(
+            *children,
             classes="itemlist"
         )
 
-    def _buildListInputItem(self, id: str, action: argparse.Action, value: Optional[str] = None):
+    def _buildListInputItem(self,
+        id: str,
+        action: argparse.Action,
+        value: Optional[str] = None,
+        showRemove: bool = True
+    ):
         """
         Yields a list input item for the given `action`.
 
         id: The identifier for this list item.
         action: The `argparse` action to build from.
         value: The initial value for this list item.
+        showRemove: If `True`, the remove button will be shown for this list item.
         """
         # Prepare the id for this list item
         itemId = f"{action.dest}_{id}"
@@ -431,16 +450,23 @@ class Interface(App):
             value=value
         )
 
-        # Add a list input item
-        return Horizontal(
-            inputField,
-            Button(
+        # Prepare the children
+        children = [
+            inputField
+        ]
+
+        if showRemove:
+            children.append(Button(
                 "X",
                 name=itemId,
                 classes=f"{self.CLASS_LIST_RM_BTN}",
                 variant="error",
                 tooltip=f"Remove item"
-            ),
+            ))
+
+        # Add a list input item
+        return Horizontal(
+            *children,
             id=itemId,
             classes="item"
         )
