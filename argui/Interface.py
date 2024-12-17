@@ -18,6 +18,7 @@ from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switc
 from .Logging import getLogger
 from .ParserMap import ParserMap
 from .ParserGroup import ParserGroup
+from .ReturnCodes import ReturnCodes
 
 # MARK: Classes
 class Interface(App):
@@ -41,20 +42,22 @@ class Interface(App):
 
     BINDINGS = {
         Binding(
-            "ctrl+c", # TODO: Change this back to "ctrl+q"
-            "quit",
+            "ctrl+q",
+            "onQuit",
             "Quit",
             tooltip="Quit without submitting.",
             show=True,
-            priority=True
+            priority=True,
+            system=True
         ),
         Binding(
             "ctrl+s",
-            "_onSubmit",
+            "onSubmit",
             "Submit",
             tooltip="Submit.",
             show=True,
-            priority=True
+            priority=True,
+            system=True
         )
     }
 
@@ -588,11 +591,18 @@ class Interface(App):
         except ValueError:
             return None
 
-    def _onSubmit(self):
+    # MARK: Actions
+    def action_onQuit(self):
         """
-        Triggers the submit action.
+        Triggers when the user cancels submission and execution.
         """
-        self.exit()
+        self.exit(ReturnCodes.QUIT)
+
+    def action_onSubmit(self):
+        """
+        Triggers when the user submits the form.
+        """
+        self.exit(ReturnCodes.SUBMIT)
 
     # MARK: Handlers
     @on(Switch.Changed, f".{CLASS_SWITCH}")

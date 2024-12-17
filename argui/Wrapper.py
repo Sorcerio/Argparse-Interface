@@ -8,6 +8,7 @@ from typing import Union, Optional, Any
 
 from .Interface import Interface
 from .Logging import getLogger
+from .ReturnCodes import ReturnCodes
 
 # MARK: Classes
 class Wrapper:
@@ -39,13 +40,13 @@ class Wrapper:
         self._addGuiArgument(self._parser)
 
     # Functions
-    def parseArgs(self) -> argparse.Namespace:
+    def parseArgs(self) -> Optional[argparse.Namespace]:
         """
         Parses the arguments using the method defined by the cli flags.
         Will open the gui if prompted.
         Otherwise, will parse the cli arguments as normal.
 
-        Returns any parsed arguments as an `argparse.Namespace` object.
+        Returns any parsed arguments as an `argparse.Namespace` object or `None` if the gui was quit without submitting.
         """
         # Create gui argument parser
         guiArgParser = argparse.ArgumentParser(add_help=False)
@@ -64,12 +65,12 @@ class Wrapper:
             self._logger.info("Parsing cli arguments.")
             return self._parser.parse_args()
 
-    def parseArgsWithGui(self) -> argparse.Namespace:
+    def parseArgsWithGui(self) -> Optional[argparse.Namespace]:
         """
         Explicitly presents the gui (as opposed to the cli or gui) and parses provided arguments.
         The gui flag will be ignored.
 
-        Returns any parsed arguments as an `argparse.Namespace` object.
+        Returns any parsed arguments as an `argparse.Namespace` object or `None` if the gui was quit without submitting.
         """
         # Startup the Gui
         gui = Interface(
@@ -78,11 +79,21 @@ class Wrapper:
             title=self._parser.prog,
             subTitle=self._parser.description or Interface.SUB_TITLE,
         )
-        gui.run()
+        returnCode: ReturnCodes = gui.run()
 
-        # Get the arguments
-        self._logger.info("Parsed gui arguments.")
-        return gui.getArgs()
+        # Check result
+        if returnCode == ReturnCodes.QUIT:
+            # Cancelled
+            self._logger.info("Quit from the gui.")
+            return None
+        elif returnCode == ReturnCodes.SUBMIT:
+            # Submitted
+            self._logger.info("Parsed gui arguments.")
+            return gui.getArgs()
+        else:
+            # Unknown
+            self._logger.error(f"Unknown return code: {returnCode}")
+            return None
 
     # Private Functions
     def _addGuiArgument(self, parser: argparse.ArgumentParser):
