@@ -105,7 +105,9 @@ class Interface(App):
 
         yield from self._buildParserInterface()
 
-        # TODO: Add epilog if present
+        if self._parserMap.parser.epilog:
+            yield Label(self._parserMap.parser.epilog)
+
         # TODO: Add submit button
 
         # Add footer
@@ -189,7 +191,6 @@ class Interface(App):
             self._commands[action.dest] = (action.default or None)
 
             # Decide what UI to show
-            # TODO: NEXT: Add support for `nargs=#` (how to get the inputs to do it right? interpret them as a list instead? with limited "adds"?)
             # TODO: Check argparse docs to find any missing deliniations
             if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
                 # Add a switch
@@ -509,7 +510,6 @@ class Interface(App):
         filteredCmds = {k: v for k, v in self._commands.items() if k in validDests}
 
         # Flatten list-based commands
-        # TODO: Add UUID order tracking to preserve list element order
         for id in self._listsData.keys():
             # Check if a dict that needs to be flattened
             if (id in filteredCmds) and isinstance(filteredCmds[id], dict):
