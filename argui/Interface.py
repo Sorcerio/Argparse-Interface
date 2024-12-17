@@ -29,6 +29,7 @@ class Interface(App):
     """
     # MARK: Constants
     CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss") # TODO: Make the interface pretty
+    ID_SUBMIT_BTN = "submitButton"
     CLASS_SWITCH = "switchInput"
     CLASS_DROPDOWN = "dropdownInput"
     CLASS_TYPED_TEXT = "textInput"
@@ -49,7 +50,7 @@ class Interface(App):
         ),
         Binding(
             "ctrl+s",
-            "bindingSubmit",
+            "_onSubmit",
             "Submit",
             tooltip="Submit.",
             show=True,
@@ -108,7 +109,12 @@ class Interface(App):
         if self._parserMap.parser.epilog:
             yield Label(self._parserMap.parser.epilog)
 
-        # TODO: Add submit button
+        # Add submit button
+        yield Button(
+            "Submit",
+            id=self.ID_SUBMIT_BTN,
+            variant="success"
+        )
 
         # Add footer
         yield Footer()
@@ -582,6 +588,12 @@ class Interface(App):
         except ValueError:
             return None
 
+    def _onSubmit(self):
+        """
+        Triggers the submit action.
+        """
+        self.exit()
+
     # MARK: Handlers
     @on(Switch.Changed, f".{CLASS_SWITCH}")
     def inputSwitchChanged(self, event: Switch.Changed) -> None:
@@ -690,8 +702,9 @@ class Interface(App):
         # Update the command
         self._commands[dest] = tabId
 
-    def bindingSubmit(self) -> None:
+    @on(Button.Pressed, f"#{ID_SUBMIT_BTN}")
+    def submitButtonPressed(self, event: Button.Pressed) -> None:
         """
-        Triggered whe nthe submit binding is activated.
+        Triggered when submitting the form.
         """
-        self.exit()
+        self._onSubmit()
