@@ -207,7 +207,9 @@ class Interface(App):
                 if (action.choices is not None):
                     # Add a combo box input
                     yield from self._buildDropdownInput(action)
-                elif ((action.nargs == "+") or (action.nargs == "*")):
+                elif ((action.nargs == argparse.ONE_OR_MORE) or
+                      (action.nargs == argparse.ZERO_OR_MORE) or
+                      (isinstance(action.nargs, int) and (action.nargs > 1))):
                     # Add a list input
                     yield from self._buildListInput(action)
                 elif action.type == int:
@@ -283,9 +285,19 @@ class Interface(App):
         elif action.type == float:
             validators = [Number()]
 
+        # Decide placeholder
+        if isinstance(action.metavar, tuple):
+            # TODO: Find a way to link the index of the input to the index of the metavar
+            placeholder = action.dest
+        elif action.metavar:
+            placeholder = str(action.metavar)
+        else:
+            placeholder = action.dest
+
+        # Send the input
         return Input(
             value=(str(value) if (value is not None) else None),
-            placeholder=str(action.metavar or action.dest),
+            placeholder=placeholder,
             tooltip=action.help,
             type=inputType,
             name=name,
@@ -361,9 +373,11 @@ class Interface(App):
             ),
             Button(
                 "Add +",
+                id=f"{listId}_add",
                 name=listId,
                 classes=f"{self.CLASS_LIST_ADD_BTN}",
-                tooltip=f"Add a new item to {action.dest}"
+                tooltip=f"Add a new item to {action.dest}",
+                disabled=((len(items) >= action.nargs) if isinstance(action.nargs, int) else False)
             ),
             classes="itemlist"
         )
@@ -594,22 +608,33 @@ class Interface(App):
         # Add a new item to the ui
         self.get_widget_by_id(event.button.name).mount(listItem)
 
+        # Check if the list is full
+        if isinstance(action.nargs, int) and (len(listItems) >= action.nargs):
+            event.button.disabled = True
+            return
+
     @on(Button.Pressed, f".{CLASS_LIST_RM_BTN}")
     def listRemoveButtonPressed(self, event: Button.Pressed) -> None:
         """
         Triggered when a list remove button is pressed.
         """
         # Get the target
-        dest, id = event.button.name.split("_")
+        dest, listId = event.button.name.split("_")
+        action, listItems = self._listsData[dest]
 
         # Remove from the command
-        _ = self._commands[dest].pop(id)
+        _ = self._commands[dest].pop(listId)
 
         # Remove from the list data
-        _ = self._listsData[dest][1].pop(id)
+        del listItems[listId]
 
         # Remove from the UI
         self.get_widget_by_id(event.button.name).remove()
+
+        # Check if list is no longer full
+        if isinstance(action.nargs, int) and (len(listItems) < action.nargs):
+            if addBtn := self.get_widget_by_id(f"{dest}_add"):
+                addBtn.disabled = False
 
     @on(TabbedContent.TabActivated, f".{CLASS_SUBPARSER_TAB_BOX}")
     def tabActivated(self, event: TabbedContent.TabActivated) -> None:
