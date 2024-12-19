@@ -68,7 +68,6 @@ class ParserMap:
         # Get actions of mutually exclusive groups
         for mutExGroup in parser._mutually_exclusive_groups:
             # Create ParserGroup instance
-            groupId = str(uuid.uuid4())
             reqActions = []
             optActions = []
             for action in mutExGroup._group_actions:
@@ -92,7 +91,6 @@ class ParserMap:
             if reqActions or optActions:
                 parserGroup = ParserGroup(
                     isExclusive=True,
-                    title=groupId,
                     reqActions=reqActions,
                     optActions=optActions
                 )

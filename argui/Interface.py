@@ -143,15 +143,21 @@ class Interface(App):
         for groupIndex, group in enumerate(self._parserMap.groupMap):
             # Add the group branch
             groupBranch = tree.root.add(
-                (f"Section {groupIndex + 1}" if group.isUuidTitle else group.title),
+                (f"Section {groupIndex + 1}" if group.isUuidTitle else group.title.capitalize()),
                 expand=True,
                 data=self.CLASS_NAV_SECTION
             )
 
             # Add the actions
             for action in self._onlyValidActions(group.allActions()):
+                # Build the info text
+                infoText = ""
+                if ParserGroup.isActionRequired(action):
+                    infoText += "*"
+
+                # Add the leaf
                 groupBranch.add_leaf(
-                    action.dest,
+                    f"{action.dest}{infoText}",
                     data=self.CLASS_NAV_INPUT
                 )
 
