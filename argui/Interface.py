@@ -20,6 +20,7 @@ from .ParserMap import ParserMap
 from .ParserGroup import ParserGroup
 from .ReturnCodes import ReturnCodes
 from .QuitModal import QuitModal
+from .SubmitModal import SubmitModal
 
 # MARK: Classes
 class Interface(App):
@@ -597,14 +598,15 @@ class Interface(App):
         """
         Triggers when the user cancels submission and execution.
         """
-        # Push the quit modal
+        # Push quit confirmation
         QuitModal.pushScreen(self)
 
     def action_onSubmit(self):
         """
         Triggers when the user submits the form.
         """
-        self.exit(ReturnCodes.SUBMIT)
+        # Push submit confirmation
+        SubmitModal.pushScreen(self)
 
     # MARK: Handlers
     @on(Switch.Changed, f".{CLASS_SWITCH}")
