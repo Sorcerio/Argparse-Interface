@@ -19,6 +19,7 @@ from .Logging import getLogger
 from .ParserMap import ParserMap
 from .ParserGroup import ParserGroup
 from .ReturnCodes import ReturnCodes
+from .QuitModal import QuitModal
 
 # MARK: Classes
 class Interface(App):
@@ -596,7 +597,8 @@ class Interface(App):
         """
         Triggers when the user cancels submission and execution.
         """
-        self.exit(ReturnCodes.QUIT)
+        # Push the quit modal
+        QuitModal.pushScreen(self)
 
     def action_onSubmit(self):
         """
@@ -717,4 +719,4 @@ class Interface(App):
         """
         Triggered when submitting the form.
         """
-        self._onSubmit()
+        self.action_onSubmit()

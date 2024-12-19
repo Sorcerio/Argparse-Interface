@@ -24,20 +24,17 @@ class AlertModal(ModalScreen[Button.Pressed]):
     # Lifecycle
     def __init__(self,
         message: str,
-        buttons: Iterable[Button],
-        onButtonPressed: Optional[Callable[[Button.Pressed], None]] = None
+        buttons: Iterable[Button]
     ):
         """
         message: The message to display in the alert.
         buttons: The buttons to display in the alert.
-        onButtonPressed: The callback to call when a button is pressed.
         """
         super().__init__()
 
         # Record data
         self._message = message
         self._buttons = buttons
-        self._onButtonPressed = onButtonPressed
 
         # Add button class
         for btn in self._buttons:
@@ -49,7 +46,6 @@ class AlertModal(ModalScreen[Button.Pressed]):
     def compose(self) -> ComposeResult:
         yield Vertical(
             Label(self._message),
-            # Horizontal(*self._buttons),
             Grid(*self._buttons),
             id=self.ID_ALERT_ROOT
         )
