@@ -33,7 +33,9 @@ class Interface(App):
     CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss") # TODO: Make the interface pretty
 
     ID_SUBMIT_BTN = "submitButton"
+    ID_NAV_AREA = "navArea"
     ID_NAV_TREE = "navTree"
+    ID_CONTENT_AREA = "contentArea"
 
     CLASS_SWITCH = "switchInput"
     CLASS_DROPDOWN = "dropdownInput"
@@ -110,10 +112,12 @@ class Interface(App):
         # Add content container
         yield Horizontal(
             Vertical(
-                self._buildNavigatorArea()
+                self._buildNavigatorArea(),
+                id=self.ID_NAV_AREA
             ),
             Vertical(
-                *self._buildContentArea()
+                *self._buildContentArea(),
+                id=self.ID_CONTENT_AREA
             )
         )
 
@@ -222,17 +226,18 @@ class Interface(App):
         """
         Yields UI elements for actions of any given `ParserGroup` in tabbed sections.
         """
-        # Add tabs for inputs
-        with TabbedContent(id=f"group_{group.title}", classes=self.CLASS_EXCLUSIVE_TAB_BOX):
-            for action in group.allActions():
-                # Create the tab
-                with TabPane(action.dest):
-                    # Add description
-                    if action.help:
-                        yield Label(action.help)
+        yield Label("TABBED GROUP") # TODO: NOW: Fix this
+        # # Add tabs for inputs
+        # with TabbedContent(id=f"group_{group.title}", classes=self.CLASS_EXCLUSIVE_TAB_BOX):
+        #     for action in group.allActions():
+        #         # Create the tab
+        #         with TabPane(action.dest):
+        #             # Add description
+        #             if action.help:
+        #                 yield Label(action.help)
 
-                    # Add the input
-                    yield from self._buildActionInputs([action])
+        #             # Add the input
+        #             yield from self._buildActionInputs([action])
 
     def _buildActionInputs(self, actions: Iterable[argparse.Action]):
         """
@@ -541,20 +546,21 @@ class Interface(App):
 
         action: The `argparse` action to build from.
         """
-        # Add tabs for subparsers
-        with TabbedContent(id=action.dest, classes=self.CLASS_SUBPARSER_TAB_BOX):
-            # Loop through subparsers
-            parserKey: str
-            parser: argparse.ArgumentParser
-            for parserKey, parser in action.choices.items():
-                # Create the tab
-                with TabPane(parserKey, id=f"{action.dest}_{parserKey}"):
-                    # Add description
-                    if parser.description:
-                        yield Label(parser.description)
+        yield Label("SUBPARSER GROUP") # TODO: NOW: Fix this
+        # # Add tabs for subparsers
+        # with TabbedContent(id=action.dest, classes=self.CLASS_SUBPARSER_TAB_BOX):
+        #     # Loop through subparsers
+        #     parserKey: str
+        #     parser: argparse.ArgumentParser
+        #     for parserKey, parser in action.choices.items():
+        #         # Create the tab
+        #         with TabPane(parserKey, id=f"{action.dest}_{parserKey}"):
+        #             # Add description
+        #             if parser.description:
+        #                 yield Label(parser.description)
 
-                    # yield from self._buildParserInterface(parser)
-                    yield from self._buildActionInputs(self._onlyValidActions(parser._actions))
+        #             # yield from self._buildParserInterface(parser)
+        #             yield from self._buildActionInputs(self._onlyValidActions(parser._actions))
 
     # MARK: Functions
     def getArgs(self) -> argparse.Namespace:
@@ -780,5 +786,6 @@ class Interface(App):
         if event.node.data == self.CLASS_NAV_INPUT:
             # Get the target
             target = self.query_one(f"#{event.node.label}")
-            # TODO: self.scroll_to_widget()
-            print(target)
+            scrollArea = self.query_one(f"#{self.ID_CONTENT_AREA}")
+            if target and scrollArea:
+                scrollArea.scroll_to_widget(target)

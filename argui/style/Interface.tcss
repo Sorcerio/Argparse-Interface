@@ -1,8 +1,24 @@
+# Core Screen
 Screen {
     layout: vertical;
     overflow-y: auto;
 }
 
+#navArea {
+    width: 1fr;
+    overflow-x: hidden;
+
+    Tree {
+        overflow-x: hidden;
+    }
+}
+
+#contentArea {
+    width: 3.2fr;
+    overflow-y: auto;
+}
+
+# General
 .hcontainer {
     width: 100%;
     height: auto;

@@ -47,7 +47,7 @@ class ParserMap:
             reqActions = []
             optActions = []
             for action in group._group_actions:
-                if (action.required or (len(action.option_strings) == 0)):
+                if ParserGroup.isActionRequired(action):
                     reqActions.append(action)
                 else:
                     optActions.append(action)
@@ -83,7 +83,7 @@ class ParserMap:
                                 break
 
                         # Add to this group
-                        if action.required:
+                        if ParserGroup.isActionRequired(action):
                             reqActions.append(action)
                         else:
                             optActions.append(action)

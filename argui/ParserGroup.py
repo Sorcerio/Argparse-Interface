@@ -15,8 +15,8 @@ class ParserGroup:
     def __init__(self,
         isExclusive: bool,
         title: Optional[str] = None,
-        reqActions: Optional[Iterable[argparse.Action]] = [],
-        optActions: Optional[Iterable[argparse.Action]] = []
+        reqActions: Optional[list[argparse.Action]] = [],
+        optActions: Optional[list[argparse.Action]] = []
     ):
         """
         isExclusive: If the group is a mutually exclusive choice group.
@@ -50,6 +50,15 @@ class ParserGroup:
 
     def __hash__(self) -> int:
         return hash(self.__str__())
+
+    # Static Functions
+    @staticmethod
+    def isActionRequired(action: argparse.Action) -> bool:
+        """
+        Returns whether an action is functionally required.
+        This is different from the `required` attribute of an action.
+        """
+        return action.required or (len(action.option_strings) == 0)
 
     # Functions
     def allActions(self) -> Iterable[argparse.Action]:
