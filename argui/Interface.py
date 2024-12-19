@@ -606,6 +606,7 @@ class Interface(App):
         Triggers when the user submits the form.
         """
         # Push submit confirmation
+        # TODO: Add validation before letting the user submit
         SubmitModal.pushScreen(self)
 
     # MARK: Handlers
