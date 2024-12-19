@@ -24,12 +24,15 @@ class ParserGroup:
         reqActions: The required actions of the group.
         optActions: The optional actions of the group.
         """
+        # Set the group id
+        self.id = f"group-{uuid.uuid4()}"
+
         # Set title
         if title and (len(title.strip()) > 0):
             self.title = title.strip()
             self.isUuidTitle = False
         else:
-            self.title = str(uuid.uuid4())
+            self.title = self.id
             self.isUuidTitle = True
 
         # Set data

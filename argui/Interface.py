@@ -13,12 +13,11 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.validation import Number
 from textual.containers import Vertical, Horizontal
-from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input, Button
+from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input, Button, Tree
 
 from .Logging import getLogger
 from .ParserMap import ParserMap
 from .ParserGroup import ParserGroup
-from .ReturnCodes import ReturnCodes
 from .QuitModal import QuitModal
 from .SubmitModal import SubmitModal
 
@@ -32,7 +31,10 @@ class Interface(App):
     """
     # MARK: Constants
     CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss") # TODO: Make the interface pretty
+
     ID_SUBMIT_BTN = "submitButton"
+    ID_NAV_TREE = "navTree"
+
     CLASS_SWITCH = "switchInput"
     CLASS_DROPDOWN = "dropdownInput"
     CLASS_TYPED_TEXT = "textInput"
@@ -41,6 +43,8 @@ class Interface(App):
     CLASS_LIST_TEXT = "listInput"
     CLASS_SUBPARSER_TAB_BOX = "subparserContainer"
     CLASS_EXCLUSIVE_TAB_BOX = "exclusiveContainer"
+    CLASS_NAV_SECTION = "navSection"
+    CLASS_NAV_INPUT = "navInput"
 
     BINDINGS = {
         Binding(
@@ -103,6 +107,57 @@ class Interface(App):
 
         # TODO: Add sidebar with links to each section, group, and input?
 
+        # Add content container
+        yield Horizontal(
+            Vertical(
+                self._buildNavigatorArea()
+            ),
+            Vertical(
+                *self._buildContentArea()
+            )
+        )
+
+        # Add footer
+        yield Footer()
+
+    def on_mount(self) -> None:
+        self.title = self.mainTitle
+        self.sub_title = self.mainSubtitle
+
+    # MARK: UI Builders
+    def _buildNavigatorArea(self):
+        """
+        TODO: docs
+        """
+        # Build the tree
+        tree: Tree[str] = Tree(
+            "PROG",
+            id=self.ID_NAV_TREE
+        )
+        tree.root.expand()
+
+        for groupIndex, group in enumerate(self._parserMap.groupMap):
+            # Add the group branch
+            groupBranch = tree.root.add(
+                (f"Section {groupIndex + 1}" if group.isUuidTitle else group.title),
+                expand=True,
+                data=self.CLASS_NAV_SECTION
+            )
+
+            # Add the actions
+            for action in self._onlyValidActions(group.allActions()):
+                groupBranch.add_leaf(
+                    action.dest,
+                    data=self.CLASS_NAV_INPUT
+                )
+
+        # Yield the tree
+        return tree
+
+    def _buildContentArea(self):
+        """
+        TODO: docs
+        """
         # Add content
         yield Label(self._parserMap.parser.prog)
 
@@ -121,14 +176,6 @@ class Interface(App):
             variant="success"
         )
 
-        # Add footer
-        yield Footer()
-
-    def on_mount(self) -> None:
-        self.title = self.mainTitle
-        self.sub_title = self.mainSubtitle
-
-    # MARK: UI Builders
     def _buildParserInterface(self):
         """
         Yields all UI elements for the given `argparse.ArgumentParser` object chain.
@@ -723,3 +770,15 @@ class Interface(App):
         Triggered when submitting the form.
         """
         self.action_onSubmit()
+
+    @on(Tree.NodeSelected, f"#{ID_NAV_TREE}")
+    def navTreeNodeSelected(self, event: Tree.NodeSelected) -> None:
+        """
+        Triggered when submitting the form.
+        """
+        # Check for a navigatable node
+        if event.node.data == self.CLASS_NAV_INPUT:
+            # Get the target
+            target = self.query_one(f"#{event.node.label}")
+            # TODO: self.scroll_to_widget()
+            print(target)
