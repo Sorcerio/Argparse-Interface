@@ -1,0 +1,27 @@
+AlertModal {
+    align: center middle;
+}
+
+#alertModal {
+    background: $surface;
+
+    width: 50%;
+    height: 10;
+    border: thick $background 80%;
+
+    Label {
+        width: 100%;
+        padding: 1;
+        content-align: center middle;
+    }
+
+    Grid {
+        grid-size: 3 1;
+        align: center middle;
+        width: 100%;
+
+        Button {
+            width: 100%
+        }
+    }
+}

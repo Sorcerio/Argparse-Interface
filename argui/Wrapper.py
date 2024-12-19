@@ -21,7 +21,7 @@ class Wrapper:
     def __init__(self,
         parser: argparse.ArgumentParser,
         guiFlag: str = "--gui",
-        logLevel: int = logging.INFO, # TODO: use WARN
+        logLevel: int = logging.INFO,
         debugUI: bool = False,
     ):
         """
@@ -92,7 +92,7 @@ class Wrapper:
             return gui.getArgs()
         else:
             # Unknown
-            self._logger.error(f"Unknown return code: {returnCode}")
+            self._logger.warning(f"Unexpected return code: {returnCode}")
             return None
 
     # Private Functions
