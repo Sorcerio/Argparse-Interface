@@ -139,45 +139,10 @@ class Interface(App):
                 # Check the type of tab being built
                 if isinstance(action.choices, dict):
                     # Create a subparser group tab
-                    parserKey: str
-                    parser: argparse.ArgumentParser
-                    for parserKey, parser in action.choices.items():
-                        # Build the tab contents
-                        children = []
-
-                        if parser.description:
-                            children.append(Label(parser.description))
-
-                        # children.extend(self._buildParserInterface()) # TODO: Fix this
-                        children.extend(self._buildActionInputs(self._onlyValidActions(parser._actions)))
-
-                        # Create the tab
-                        newTab = TabPane(
-                            parserKey,
-                            *children,
-                            id=f"{action.dest}_{parserKey}"
-                        )
-
-                        # Add the tab
-                        self.get_widget_by_id(tabsId).add_pane(newTab)
+                    self._installSubparserGroupContent(tabsId, action)
                 else:
                     # Create a group content tab
-                    # Build the tab contents
-                    children = []
-
-                    if action.help:
-                        children.append(Label(action.help))
-
-                    children.extend(self._buildActionInputs([action]))
-
-                    # Create the tab
-                    newTab = TabPane(
-                        action.dest,
-                        *children
-                    )
-
-                    # Add the tab
-                    self.get_widget_by_id(tabsId).add_pane(newTab)
+                    self._installTabbedGroupContent(tabsId, action)
 
         del self.__initTabsContent
 
@@ -298,6 +263,30 @@ class Interface(App):
         # Yield the tabbed content
         tabbedContent = TabbedContent(id=tabs, classes=self.CLASS_EXCLUSIVE_TAB_BOX)
         yield tabbedContent
+
+    def _installTabbedGroupContent(self, tabsId: str, action: argparse.Action):
+        """
+        Installs a `TabPane` object for given `action` into the `TabbedContent` object with the a matching id.
+
+        tabsId: The id of the `TabbedContent` object to install the `TabPane` objects into.
+        action: The `argparse` action to build from.
+        """
+        # Build the tab contents
+        children = []
+
+        if action.help:
+            children.append(Label(action.help))
+
+        children.extend(self._buildActionInputs([action]))
+
+        # Create the tab
+        newTab = TabPane(
+            action.dest,
+            *children
+        )
+
+        # Add the tab
+        self.get_widget_by_id(tabsId).add_pane(newTab)
 
     def _buildActionInputs(self, actions: Iterable[argparse.Action]):
         """
@@ -623,6 +612,40 @@ class Interface(App):
         # Yield the tabbed content
         tabbedContent = TabbedContent(id=tabs, classes=self.CLASS_SUBPARSER_TAB_BOX)
         yield tabbedContent
+
+    def _installSubparserGroupContent(self, tabsId: str, action: argparse.Action):
+        """
+        Installs `TabPane` objects for the given `action` into the `TabbedContent` object with the a matching id.
+
+        tabsId: The id of the `TabbedContent` object to install the `TabPane` objects into.
+        action: The `argparse` action to build from.
+        """
+        # Check the type of tab being built
+        if not isinstance(action.choices, dict):
+            return
+
+        # Create a subparser group tab
+        parserKey: str
+        parser: argparse.ArgumentParser
+        for parserKey, parser in action.choices.items():
+            # Build the tab contents
+            children = []
+
+            if parser.description:
+                children.append(Label(parser.description))
+
+            # children.extend(self._buildParserInterface()) # TODO: Fix this
+            children.extend(self._buildActionInputs(self._onlyValidActions(parser._actions)))
+
+            # Create the tab
+            newTab = TabPane(
+                parserKey,
+                *children,
+                id=f"{action.dest}_{parserKey}"
+            )
+
+            # Add the tab
+            self.get_widget_by_id(tabsId).add_pane(newTab)
 
     # MARK: Functions
     def getArgs(self) -> argparse.Namespace:
