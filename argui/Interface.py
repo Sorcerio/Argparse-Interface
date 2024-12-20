@@ -97,6 +97,7 @@ class Interface(App):
         self._commands: dict[str, Optional[Any]] = {}
         self._listsData: dict[str, tuple[argparse.Action, dict[str, Any]]] = {} # { list id : (action, {list item id : list item}) }
         self._uiLogger = getLogger(logLevel)
+        self.__initTabsContent: Optional[dict[str, argparse.Action]] = {} # { tab id : action }; deleted after use
 
         # Check for the css
         if not os.path.exists(self.CSS_PATH):
@@ -104,13 +105,13 @@ class Interface(App):
 
     # MARK: Lifecycle
     def compose(self) -> ComposeResult:
-        # Add header
-        yield Header(icon="⛽") # TODO: User supplied text icon
-
-        # TODO: Add sidebar with links to each section, group, and input?
-
-        # Add content container
-        yield Horizontal(
+        """
+        Defines the interface.
+        """
+        # Prep the list
+        elements = [
+            Header(icon="⛽"),
+            Horizontal(
             Vertical(
                 self._buildNavigatorArea(),
                 id=self.ID_NAV_AREA
@@ -118,15 +119,46 @@ class Interface(App):
             Vertical(
                 *self._buildContentArea(),
                 id=self.ID_CONTENT_AREA
-            )
+            ),
+            Footer()
         )
-
-        # Add footer
-        yield Footer()
+        ]
+        return elements
 
     def on_mount(self) -> None:
+        """
+        Run after installing the items in `compose()`.
+        """
+        # Set the title
         self.title = self.mainTitle
         self.sub_title = self.mainSubtitle
+
+        # Install any tabs
+        for tabsId, action in self.__initTabsContent.items():
+            if isinstance(action.choices, dict):
+                parserKey: str
+                parser: argparse.ArgumentParser
+                for parserKey, parser in action.choices.items():
+                    # Build the tab contents
+                    children = []
+
+                    if parser.description:
+                        children.append(Label(parser.description))
+
+                    # children.extend(self._buildParserInterface()) # TODO: Fix this
+                    children.extend(self._buildActionInputs(self._onlyValidActions(parser._actions)))
+
+                    # Create the tab
+                    newTab = TabPane(
+                        parserKey,
+                        *children,
+                        id=f"{action.dest}_{parserKey}"
+                    )
+
+                    # Add the tab
+                    self.get_widget_by_id(tabsId).add_pane(newTab)
+
+        del self.__initTabsContent
 
     # MARK: UI Builders
     def _buildNavigatorArea(self):
@@ -552,21 +584,20 @@ class Interface(App):
 
         action: The `argparse` action to build from.
         """
-        yield Label("SUBPARSER GROUP") # TODO: NOW: Fix this
-        # # Add tabs for subparsers
-        # with TabbedContent(id=action.dest, classes=self.CLASS_SUBPARSER_TAB_BOX):
-        #     # Loop through subparsers
-        #     parserKey: str
-        #     parser: argparse.ArgumentParser
-        #     for parserKey, parser in action.choices.items():
-        #         # Create the tab
-        #         with TabPane(parserKey, id=f"{action.dest}_{parserKey}"):
-        #             # Add description
-        #             if parser.description:
-        #                 yield Label(parser.description)
+        # Guard against bad choices
+        if not isinstance(action.choices, dict):
+            yield Label("No options provided.")
+            return
 
-        #             # yield from self._buildParserInterface(parser)
-        #             yield from self._buildActionInputs(self._onlyValidActions(parser._actions))
+        # Create an id
+        tabs = f"{action.dest}_subparser"
+
+        # Store the action
+        self.__initTabsContent[tabs] = action
+
+        # Yield the tabbed content
+        tabbedContent = TabbedContent(id=tabs, classes=self.CLASS_SUBPARSER_TAB_BOX)
+        yield tabbedContent
 
     # MARK: Functions
     def getArgs(self) -> argparse.Namespace:
