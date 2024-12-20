@@ -9,7 +9,7 @@ import uuid
 from typing import Union, Optional, Any, Iterable
 
 from textual import on
-from textual.app import App, ComposeResult
+from textual.app import App, SystemCommand, ComposeResult
 from textual.binding import Binding
 from textual.validation import Number
 from textual.containers import Vertical, Horizontal
@@ -20,6 +20,7 @@ from .ParserMap import ParserMap
 from .ParserGroup import ParserGroup
 from .QuitModal import QuitModal
 from .SubmitModal import SubmitModal
+from .debug.ExportDOM import exportDOM
 
 # MARK: Classes
 class Interface(App):
@@ -147,6 +148,10 @@ class Interface(App):
         del self.__initTabsContent
 
         # TODO: Show loading spinner as a screen overlay until this point
+
+    def get_system_commands(self, screen):
+        yield from super().get_system_commands(screen)
+        yield SystemCommand("Export DOM", "Exports the current DOM to a JSON file.", self._exportDOM)
 
     # MARK: UI Builders
     def _buildNavigatorArea(self):
@@ -739,6 +744,12 @@ class Interface(App):
                 return s
         except ValueError:
             return None
+
+    def _exportDOM(self) -> None:
+        """
+        Exports the Textual DOM that is currently displayed.
+        """
+        exportDOM(self.screen)
 
     # MARK: Actions
     def action_onQuit(self):
