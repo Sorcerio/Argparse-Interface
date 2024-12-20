@@ -146,6 +146,8 @@ class Interface(App):
 
         del self.__initTabsContent
 
+        # TODO: Show loading spinner as a screen overlay until this point
+
     # MARK: UI Builders
     def _buildNavigatorArea(self):
         """
@@ -158,10 +160,17 @@ class Interface(App):
         )
         tree.root.expand()
 
+        # Populate the tree
         for groupIndex, group in enumerate(self._parserMap.groupMap):
+            # Choose a title
+            if group.isUuidTitle:
+                groupTitle = f"Section {groupIndex + 1}"
+            else:
+                groupTitle = " ".join([s.capitalize() for s in group.title.split(" ")])
+
             # Add the group branch
             groupBranch = tree.root.add(
-                (f"Section {groupIndex + 1}" if group.isUuidTitle else group.title.capitalize()),
+                groupTitle,
                 expand=True,
                 data=self.CLASS_NAV_SECTION
             )
