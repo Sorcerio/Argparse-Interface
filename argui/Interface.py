@@ -134,7 +134,7 @@ class Interface(App):
         self.sub_title = self.mainSubtitle
 
         # Install any tabs
-        for tabsId, actions in self.__initTabsContent.items(): # TODO: Move to functions
+        for tabsId, actions in self.__initTabsContent.items():
             for action in actions:
                 # Check the type of tab being built
                 if isinstance(action.choices, dict):
@@ -149,7 +149,7 @@ class Interface(App):
     # MARK: UI Builders
     def _buildNavigatorArea(self):
         """
-        TODO: docs
+        Builds the navigator tree.
         """
         # Build the tree
         tree: Tree[str] = Tree(
@@ -184,7 +184,7 @@ class Interface(App):
 
     def _buildContentArea(self):
         """
-        TODO: docs
+        Builds the input content area.
         """
         # Add content
         yield Label(self._parserMap.parser.prog)
