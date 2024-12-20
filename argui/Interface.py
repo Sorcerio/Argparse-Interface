@@ -131,6 +131,7 @@ class Interface(App):
         Run after installing the items in `compose()`.
         """
         # Set the title
+        # TODO: Limit max characters combined
         self.title = self.mainTitle
         self.sub_title = self.mainSubtitle
 
@@ -201,15 +202,13 @@ class Interface(App):
         Builds the input content area.
         """
         # Add content
-        yield Label(self._parserMap.parser.prog)
-
         if self._parserMap.parser.description:
-            yield Label(self._parserMap.parser.description)
+            yield Label(self._parserMap.parser.description, classes="subtitle")
 
         yield from self._buildParserInterface()
 
         if self._parserMap.parser.epilog:
-            yield Label(self._parserMap.parser.epilog)
+            yield Label(self._parserMap.parser.epilog, classes="epilog")
 
         # Add submit button
         yield Button(
@@ -227,18 +226,27 @@ class Interface(App):
         """
         # Loop through the groups
         for groupIndex, group in enumerate(self._parserMap.groupMap):
-            # Create the group title
-            if group.isUuidTitle:
-                yield Label(f"Section {groupIndex + 1}", classes="header1")
-            else:
-                yield Label(group.title, classes="header1")
-
             # Check if the group is mutually exclusive
             if group.isExclusive:
-                yield from self._buildTabbedGroupSections(group)
+                container = Vertical(
+                    *self._buildTabbedGroupSections(group),
+                    classes="inputGroup exclusive"
+                )
             else:
                 # Create normal layout
-                yield from self._buildGroupSections(group)
+                container = Vertical(
+                    *self._buildGroupSections(group),
+                    classes="inputGroup normal"
+                )
+
+            # Add title
+            if group.isUuidTitle:
+                container.border_title = f"Section {groupIndex + 1}"
+            else:
+                container.border_title = group.title
+
+            # Send it
+            yield container
 
     def _buildGroupSections(self, group: ParserGroup):
         """
@@ -248,14 +256,12 @@ class Interface(App):
         """
         # Create the required actions as needed
         if group.reqActions:
-            yield Label("Required", classes="header2")
             yield from self._buildActionInputs(
                 self._onlyValidActions(group.reqActions)
             )
 
         # Create the optional actions as needed
         if group.optActions:
-            yield Label("Optional", classes="header2")
             yield from self._buildActionInputs(
                 self._onlyValidActions(group.optActions)
             )
@@ -362,15 +368,15 @@ class Interface(App):
         action: The `argparse` action to build from.
         """
         # Add a switch
-        yield Horizontal(
-            Label(action.dest),
+        yield Vertical(
+            Label(action.dest, classes="inputLabel"),
             Switch(
                 value=isinstance(action, argparse._StoreTrueAction),
                 tooltip=action.help,
                 id=action.dest,
                 classes=f"{self.CLASS_SWITCH}"
             ),
-            classes="hcontainer"
+            classes="inputContainer"
         )
 
     def _buildDropdownInput(self, action: argparse.Action):
@@ -380,8 +386,8 @@ class Interface(App):
         action: The `argparse` action to build from.
         """
         # Add select dropdown
-        yield Horizontal(
-            Label(action.dest),
+        yield Vertical(
+            Label(action.dest, classes="inputLabel"),
             Select(
                 options=[(str(c), c) for c in action.choices],
                 value=(action.default if (action.default is not None) else action.choices[0]),
@@ -389,7 +395,7 @@ class Interface(App):
                 id=action.dest,
                 classes=f"{self.CLASS_DROPDOWN}"
             ),
-            classes="hcontainer"
+            classes="inputContainer"
         )
 
     def _createInput(self,
@@ -445,15 +451,15 @@ class Interface(App):
         hideLabel: If `True`, the label will be hidden.
         """
         # Add a typed input
-        yield Horizontal(
-            Label(action.dest),
+        yield Vertical(
+            Label(action.dest, classes="inputLabel"),
             self._createInput(
                 action,
                 inputType=inputType,
                 classes=self.CLASS_TYPED_TEXT,
                 value=(action.default or None)
             ),
-            classes="hcontainer"
+            classes="inputContainer"
         )
 
     def _buildListInput(self, action: argparse.Action, showAddRemove: bool = True):
@@ -512,11 +518,11 @@ class Interface(App):
 
         # Prepare the children
         children = [
-            Label(action.dest),
+            Label(action.dest, classes="inputLabel"),
             Vertical(
                 *items.values(),
                 id=listId,
-                classes="vcontainer"
+                classes="listInputItemBox"
             )
         ]
 
@@ -525,6 +531,7 @@ class Interface(App):
                 "Add +",
                 id=f"{listId}_add",
                 name=listId,
+                variant="primary",
                 classes=f"{self.CLASS_LIST_ADD_BTN}",
                 tooltip=f"Add a new item to {action.dest}",
                 disabled=((len(items) >= action.nargs) if isinstance(action.nargs, int) else False)
@@ -533,7 +540,7 @@ class Interface(App):
         # Add a list input
         yield Vertical(
             *children,
-            classes="itemlist"
+            classes="listInputContainer"
         )
 
     def _buildListInputItem(self,
