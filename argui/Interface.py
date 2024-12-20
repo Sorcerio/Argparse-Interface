@@ -9,18 +9,18 @@ import uuid
 from typing import Union, Optional, Any, Iterable
 
 from textual import on
-from textual.app import App, ComposeResult
+from textual.app import App, SystemCommand, ComposeResult
 from textual.binding import Binding
 from textual.validation import Number
 from textual.containers import Vertical, Horizontal
-from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input, Button
+from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input, Button, Tree
 
 from .Logging import getLogger
 from .ParserMap import ParserMap
 from .ParserGroup import ParserGroup
-from .ReturnCodes import ReturnCodes
 from .QuitModal import QuitModal
 from .SubmitModal import SubmitModal
+from .debug.ExportDOM import exportDOM
 
 # MARK: Classes
 class Interface(App):
@@ -31,8 +31,13 @@ class Interface(App):
     Use `Wrapper` to automatically handle the interface.
     """
     # MARK: Constants
-    CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss") # TODO: Make the interface pretty
+    CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss")
+
     ID_SUBMIT_BTN = "submitButton"
+    ID_NAV_AREA = "navArea"
+    ID_NAV_TREE = "navTree"
+    ID_CONTENT_AREA = "contentArea"
+
     CLASS_SWITCH = "switchInput"
     CLASS_DROPDOWN = "dropdownInput"
     CLASS_TYPED_TEXT = "textInput"
@@ -41,6 +46,8 @@ class Interface(App):
     CLASS_LIST_TEXT = "listInput"
     CLASS_SUBPARSER_TAB_BOX = "subparserContainer"
     CLASS_EXCLUSIVE_TAB_BOX = "exclusiveContainer"
+    CLASS_NAV_SECTION = "navSection"
+    CLASS_NAV_INPUT = "navInput"
 
     BINDINGS = {
         Binding(
@@ -89,8 +96,9 @@ class Interface(App):
         # self._parserMap.parser = parser
         self._parserMap = ParserMap(parser)
         self._commands: dict[str, Optional[Any]] = {}
-        self._listsData: dict[str, tuple[argparse.Action, dict[str, Any]]] = {} # { list id : (action, {list item id : list item}) }
+        self._listsData: dict[str, tuple[argparse.Action, dict[str, Any]]] = {} # { list id : (action, { list item id : list item }) }
         self._uiLogger = getLogger(logLevel)
+        self.__initTabsContent: Optional[dict[str, list[argparse.Action]]] = {} # { tab id : [ action, ... ] }; deleted after use
 
         # Check for the css
         if not os.path.exists(self.CSS_PATH):
@@ -98,21 +106,109 @@ class Interface(App):
 
     # MARK: Lifecycle
     def compose(self) -> ComposeResult:
-        # Add header
-        yield Header(icon="⛽") # TODO: User supplied text icon
+        """
+        Defines the interface.
+        """
+        # Prep the list
+        elements = [
+            Header(icon="⛽"),
+            Horizontal(
+            Vertical(
+                self._buildNavigatorArea(),
+                id=self.ID_NAV_AREA
+            ),
+            Vertical(
+                *self._buildContentArea(),
+                id=self.ID_CONTENT_AREA
+            ),
+            Footer()
+        )
+        ]
+        return elements
 
-        # TODO: Add sidebar with links to each section, group, and input?
+    def on_mount(self) -> None:
+        """
+        Run after installing the items in `compose()`.
+        """
+        # Set the title
+        # TODO: Limit max characters combined
+        self.title = self.mainTitle
+        self.sub_title = self.mainSubtitle
 
+        # Install any tabs
+        for tabsId, actions in self.__initTabsContent.items():
+            for action in actions:
+                # Check the type of tab being built
+                if isinstance(action.choices, dict):
+                    # Create a subparser group tab
+                    self._installSubparserGroupContent(tabsId, action)
+                else:
+                    # Create a group content tab
+                    self._installTabbedGroupContent(tabsId, action)
+
+        del self.__initTabsContent
+
+        # TODO: Show loading spinner as a screen overlay until this point
+
+    def get_system_commands(self, screen):
+        yield from super().get_system_commands(screen)
+        yield SystemCommand("Export DOM", "Exports the current DOM to a JSON file.", self._exportDOM)
+
+    # MARK: UI Builders
+    def _buildNavigatorArea(self):
+        """
+        Builds the navigator tree.
+        """
+        # Build the tree
+        tree: Tree[str] = Tree(
+            "PROG",
+            id=self.ID_NAV_TREE
+        )
+        tree.root.expand()
+
+        # Populate the tree
+        for groupIndex, group in enumerate(self._parserMap.groupMap):
+            # Choose a title
+            if group.isUuidTitle:
+                groupTitle = f"Section {groupIndex + 1}"
+            else:
+                groupTitle = " ".join([s.capitalize() for s in group.title.split(" ")])
+
+            # Add the group branch
+            groupBranch = tree.root.add(
+                groupTitle,
+                expand=True,
+                data=self.CLASS_NAV_SECTION
+            )
+
+            # Add the actions
+            for action in self._onlyValidActions(group.allActions()):
+                # Build the info text
+                infoText = ""
+                if ParserGroup.isActionRequired(action):
+                    infoText += "*"
+
+                # Add the leaf
+                groupBranch.add_leaf(
+                    f"{action.dest}{infoText}",
+                    data=self.CLASS_NAV_INPUT
+                )
+
+        # Yield the tree
+        return tree
+
+    def _buildContentArea(self):
+        """
+        Builds the input content area.
+        """
         # Add content
-        yield Label(self._parserMap.parser.prog)
-
         if self._parserMap.parser.description:
-            yield Label(self._parserMap.parser.description)
+            yield Label(self._parserMap.parser.description, classes="subtitle")
 
         yield from self._buildParserInterface()
 
         if self._parserMap.parser.epilog:
-            yield Label(self._parserMap.parser.epilog)
+            yield Label(self._parserMap.parser.epilog, classes="epilog")
 
         # Add submit button
         yield Button(
@@ -121,14 +217,6 @@ class Interface(App):
             variant="success"
         )
 
-        # Add footer
-        yield Footer()
-
-    def on_mount(self) -> None:
-        self.title = self.mainTitle
-        self.sub_title = self.mainSubtitle
-
-    # MARK: UI Builders
     def _buildParserInterface(self):
         """
         Yields all UI elements for the given `argparse.ArgumentParser` object chain.
@@ -138,18 +226,27 @@ class Interface(App):
         """
         # Loop through the groups
         for groupIndex, group in enumerate(self._parserMap.groupMap):
-            # Create the group title
-            if group.isUuidTitle:
-                yield Label(f"Section {groupIndex + 1}", classes="header1")
-            else:
-                yield Label(group.title, classes="header1")
-
             # Check if the group is mutually exclusive
             if group.isExclusive:
-                yield from self._buildTabbedGroupSections(group)
+                container = Vertical(
+                    *self._buildTabbedGroupSections(group),
+                    classes="inputGroup exclusive"
+                )
             else:
                 # Create normal layout
-                yield from self._buildGroupSections(group)
+                container = Vertical(
+                    *self._buildGroupSections(group),
+                    classes="inputGroup normal"
+                )
+
+            # Add title
+            if group.isUuidTitle:
+                container.border_title = f"Section {groupIndex + 1}"
+            else:
+                container.border_title = group.title
+
+            # Send it
+            yield container
 
     def _buildGroupSections(self, group: ParserGroup):
         """
@@ -159,14 +256,12 @@ class Interface(App):
         """
         # Create the required actions as needed
         if group.reqActions:
-            yield Label("Required", classes="header2")
             yield from self._buildActionInputs(
                 self._onlyValidActions(group.reqActions)
             )
 
         # Create the optional actions as needed
         if group.optActions:
-            yield Label("Optional", classes="header2")
             yield from self._buildActionInputs(
                 self._onlyValidActions(group.optActions)
             )
@@ -175,17 +270,44 @@ class Interface(App):
         """
         Yields UI elements for actions of any given `ParserGroup` in tabbed sections.
         """
-        # Add tabs for inputs
-        with TabbedContent(id=f"group_{group.title}", classes=self.CLASS_EXCLUSIVE_TAB_BOX):
-            for action in group.allActions():
-                # Create the tab
-                with TabPane(action.dest):
-                    # Add description
-                    if action.help:
-                        yield Label(action.help)
+        # Create an id
+        tabs = f"group_{group.title}"
 
-                    # Add the input
-                    yield from self._buildActionInputs([action])
+        # Store the group actions
+        for action in group.allActions():
+            # Save for install
+            if tabs not in self.__initTabsContent:
+                self.__initTabsContent[tabs] = [action]
+            else:
+                self.__initTabsContent[tabs].append(action)
+
+        # Yield the tabbed content
+        tabbedContent = TabbedContent(id=tabs, classes=self.CLASS_EXCLUSIVE_TAB_BOX)
+        yield tabbedContent
+
+    def _installTabbedGroupContent(self, tabsId: str, action: argparse.Action):
+        """
+        Installs a `TabPane` object for given `action` into the `TabbedContent` object with the a matching id.
+
+        tabsId: The id of the `TabbedContent` object to install the `TabPane` objects into.
+        action: The `argparse` action to build from.
+        """
+        # Build the tab contents
+        children = []
+
+        if action.help:
+            children.append(Label(action.help, classes="tabHelp"))
+
+        children.extend(self._buildActionInputs([action]))
+
+        # Create the tab
+        newTab = TabPane(
+            action.dest,
+            *children
+        )
+
+        # Add the tab
+        self.get_widget_by_id(tabsId).add_pane(newTab)
 
     def _buildActionInputs(self, actions: Iterable[argparse.Action]):
         """
@@ -247,15 +369,15 @@ class Interface(App):
         action: The `argparse` action to build from.
         """
         # Add a switch
-        yield Horizontal(
-            Label(action.dest),
+        yield Vertical(
+            Label(action.dest, classes="inputLabel"),
             Switch(
                 value=isinstance(action, argparse._StoreTrueAction),
                 tooltip=action.help,
                 id=action.dest,
                 classes=f"{self.CLASS_SWITCH}"
             ),
-            classes="hcontainer"
+            classes="inputContainer"
         )
 
     def _buildDropdownInput(self, action: argparse.Action):
@@ -265,8 +387,8 @@ class Interface(App):
         action: The `argparse` action to build from.
         """
         # Add select dropdown
-        yield Horizontal(
-            Label(action.dest),
+        yield Vertical(
+            Label(action.dest, classes="inputLabel"),
             Select(
                 options=[(str(c), c) for c in action.choices],
                 value=(action.default if (action.default is not None) else action.choices[0]),
@@ -274,7 +396,7 @@ class Interface(App):
                 id=action.dest,
                 classes=f"{self.CLASS_DROPDOWN}"
             ),
-            classes="hcontainer"
+            classes="inputContainer"
         )
 
     def _createInput(self,
@@ -330,15 +452,15 @@ class Interface(App):
         hideLabel: If `True`, the label will be hidden.
         """
         # Add a typed input
-        yield Horizontal(
-            Label(action.dest),
+        yield Vertical(
+            Label(action.dest, classes="inputLabel"),
             self._createInput(
                 action,
                 inputType=inputType,
                 classes=self.CLASS_TYPED_TEXT,
                 value=(action.default or None)
             ),
-            classes="hcontainer"
+            classes="inputContainer"
         )
 
     def _buildListInput(self, action: argparse.Action, showAddRemove: bool = True):
@@ -397,11 +519,11 @@ class Interface(App):
 
         # Prepare the children
         children = [
-            Label(action.dest),
+            Label(action.dest, classes="inputLabel"),
             Vertical(
                 *items.values(),
                 id=listId,
-                classes="vcontainer"
+                classes="listInputItemBox"
             )
         ]
 
@@ -410,6 +532,7 @@ class Interface(App):
                 "Add +",
                 id=f"{listId}_add",
                 name=listId,
+                variant="primary",
                 classes=f"{self.CLASS_LIST_ADD_BTN}",
                 tooltip=f"Add a new item to {action.dest}",
                 disabled=((len(items) >= action.nargs) if isinstance(action.nargs, int) else False)
@@ -418,7 +541,7 @@ class Interface(App):
         # Add a list input
         yield Vertical(
             *children,
-            classes="itemlist"
+            classes="listInputContainer"
         )
 
     def _buildListInputItem(self,
@@ -494,20 +617,56 @@ class Interface(App):
 
         action: The `argparse` action to build from.
         """
-        # Add tabs for subparsers
-        with TabbedContent(id=action.dest, classes=self.CLASS_SUBPARSER_TAB_BOX):
-            # Loop through subparsers
-            parserKey: str
-            parser: argparse.ArgumentParser
-            for parserKey, parser in action.choices.items():
-                # Create the tab
-                with TabPane(parserKey, id=f"{action.dest}_{parserKey}"):
-                    # Add description
-                    if parser.description:
-                        yield Label(parser.description)
+        # Guard against bad choices
+        if not isinstance(action.choices, dict):
+            yield Label("No options provided.")
+            return
 
-                    # yield from self._buildParserInterface(parser)
-                    yield from self._buildActionInputs(self._onlyValidActions(parser._actions))
+        # Create an id
+        tabs = f"{action.dest}_subparser"
+
+        # Store the action
+        if tabs not in self.__initTabsContent:
+            self.__initTabsContent[tabs] = [action]
+        else:
+            self.__initTabsContent[tabs].append(action)
+
+        # Yield the tabbed content
+        tabbedContent = TabbedContent(id=tabs, classes=self.CLASS_SUBPARSER_TAB_BOX)
+        yield tabbedContent
+
+    def _installSubparserGroupContent(self, tabsId: str, action: argparse.Action):
+        """
+        Installs `TabPane` objects for the given `action` into the `TabbedContent` object with the a matching id.
+
+        tabsId: The id of the `TabbedContent` object to install the `TabPane` objects into.
+        action: The `argparse` action to build from.
+        """
+        # Check the type of tab being built
+        if not isinstance(action.choices, dict):
+            return
+
+        # Create a subparser group tab
+        parserKey: str
+        parser: argparse.ArgumentParser
+        for parserKey, parser in action.choices.items():
+            # Build the tab contents
+            children = []
+
+            if parser.description:
+                children.append(Label(parser.description))
+
+            children.extend(self._buildActionInputs(self._onlyValidActions(parser._actions)))
+
+            # Create the tab
+            newTab = TabPane(
+                parserKey,
+                *children,
+                id=f"{action.dest}_{parserKey}"
+            )
+
+            # Add the tab
+            self.get_widget_by_id(tabsId).add_pane(newTab)
 
     # MARK: Functions
     def getArgs(self) -> argparse.Namespace:
@@ -592,6 +751,12 @@ class Interface(App):
                 return s
         except ValueError:
             return None
+
+    def _exportDOM(self) -> None:
+        """
+        Exports the Textual DOM that is currently displayed.
+        """
+        exportDOM(self.screen)
 
     # MARK: Actions
     def action_onQuit(self):
@@ -723,3 +888,16 @@ class Interface(App):
         Triggered when submitting the form.
         """
         self.action_onSubmit()
+
+    @on(Tree.NodeSelected, f"#{ID_NAV_TREE}")
+    def navTreeNodeSelected(self, event: Tree.NodeSelected) -> None:
+        """
+        Triggered when submitting the form.
+        """
+        # Check for a navigatable node
+        if event.node.data == self.CLASS_NAV_INPUT:
+            # Get the target
+            target = self.query_one(f"#{event.node.label}")
+            scrollArea = self.query_one(f"#{self.ID_CONTENT_AREA}")
+            if target and scrollArea:
+                scrollArea.scroll_to_widget(target)

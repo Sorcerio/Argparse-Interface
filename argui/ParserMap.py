@@ -47,7 +47,7 @@ class ParserMap:
             reqActions = []
             optActions = []
             for action in group._group_actions:
-                if (action.required or (len(action.option_strings) == 0)):
+                if ParserGroup.isActionRequired(action):
                     reqActions.append(action)
                 else:
                     optActions.append(action)
@@ -68,7 +68,6 @@ class ParserMap:
         # Get actions of mutually exclusive groups
         for mutExGroup in parser._mutually_exclusive_groups:
             # Create ParserGroup instance
-            groupId = str(uuid.uuid4())
             reqActions = []
             optActions = []
             for action in mutExGroup._group_actions:
@@ -83,7 +82,7 @@ class ParserMap:
                                 break
 
                         # Add to this group
-                        if action.required:
+                        if ParserGroup.isActionRequired(action):
                             reqActions.append(action)
                         else:
                             optActions.append(action)
@@ -92,7 +91,6 @@ class ParserMap:
             if reqActions or optActions:
                 parserGroup = ParserGroup(
                     isExclusive=True,
-                    title=groupId,
                     reqActions=reqActions,
                     optActions=optActions
                 )

@@ -15,8 +15,8 @@ class ParserGroup:
     def __init__(self,
         isExclusive: bool,
         title: Optional[str] = None,
-        reqActions: Optional[Iterable[argparse.Action]] = [],
-        optActions: Optional[Iterable[argparse.Action]] = []
+        reqActions: Optional[list[argparse.Action]] = [],
+        optActions: Optional[list[argparse.Action]] = []
     ):
         """
         isExclusive: If the group is a mutually exclusive choice group.
@@ -24,12 +24,15 @@ class ParserGroup:
         reqActions: The required actions of the group.
         optActions: The optional actions of the group.
         """
+        # Set the group id
+        self.id = f"group-{uuid.uuid4()}"
+
         # Set title
         if title and (len(title.strip()) > 0):
             self.title = title.strip()
             self.isUuidTitle = False
         else:
-            self.title = str(uuid.uuid4())
+            self.title = self.id
             self.isUuidTitle = True
 
         # Set data
@@ -47,6 +50,15 @@ class ParserGroup:
 
     def __hash__(self) -> int:
         return hash(self.__str__())
+
+    # Static Functions
+    @staticmethod
+    def isActionRequired(action: argparse.Action) -> bool:
+        """
+        Returns whether an action is functionally required.
+        This is different from the `required` attribute of an action.
+        """
+        return action.required or (len(action.option_strings) == 0)
 
     # Functions
     def allActions(self) -> Iterable[argparse.Action]:
