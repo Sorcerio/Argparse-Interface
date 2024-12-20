@@ -31,7 +31,7 @@ class Interface(App):
     Use `Wrapper` to automatically handle the interface.
     """
     # MARK: Constants
-    CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss") # TODO: Make the interface pretty
+    CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "Interface.tcss")
 
     ID_SUBMIT_BTN = "submitButton"
     ID_NAV_AREA = "navArea"
@@ -275,6 +275,7 @@ class Interface(App):
 
         # Store the group actions
         for action in group.allActions():
+            # Save for install
             if tabs not in self.__initTabsContent:
                 self.__initTabsContent[tabs] = [action]
             else:
@@ -295,7 +296,7 @@ class Interface(App):
         children = []
 
         if action.help:
-            children.append(Label(action.help))
+            children.append(Label(action.help, classes="tabHelp"))
 
         children.extend(self._buildActionInputs([action]))
 
@@ -655,7 +656,6 @@ class Interface(App):
             if parser.description:
                 children.append(Label(parser.description))
 
-            # children.extend(self._buildParserInterface()) # TODO: Fix this
             children.extend(self._buildActionInputs(self._onlyValidActions(parser._actions)))
 
             # Create the tab

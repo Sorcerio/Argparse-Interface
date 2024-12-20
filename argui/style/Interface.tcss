@@ -87,6 +87,17 @@ Screen {
                 margin: 0 2;
             }
         }
+
+        &.exclusive {
+            TabbedContent {
+                margin: 1 0 0 0;
+                # padding-bottom: 0;
+            }
+
+            .tabHelp {
+                margin: 1 0 0 2;
+            }
+        }
     }
 
     Input, Switch, Select {
@@ -102,6 +113,5 @@ Screen {
 
     TabbedContent {
         padding: 0 1 1 1;
-        
     }
 }
