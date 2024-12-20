@@ -95,9 +95,9 @@ class Interface(App):
         # self._parserMap.parser = parser
         self._parserMap = ParserMap(parser)
         self._commands: dict[str, Optional[Any]] = {}
-        self._listsData: dict[str, tuple[argparse.Action, dict[str, Any]]] = {} # { list id : (action, {list item id : list item}) }
+        self._listsData: dict[str, tuple[argparse.Action, dict[str, Any]]] = {} # { list id : (action, { list item id : list item }) }
         self._uiLogger = getLogger(logLevel)
-        self.__initTabsContent: Optional[dict[str, argparse.Action]] = {} # { tab id : action }; deleted after use
+        self.__initTabsContent: Optional[dict[str, list[argparse.Action]]] = {} # { tab id : [ action, ... ] }; deleted after use
 
         # Check for the css
         if not os.path.exists(self.CSS_PATH):
@@ -134,25 +134,46 @@ class Interface(App):
         self.sub_title = self.mainSubtitle
 
         # Install any tabs
-        for tabsId, action in self.__initTabsContent.items():
-            if isinstance(action.choices, dict):
-                parserKey: str
-                parser: argparse.ArgumentParser
-                for parserKey, parser in action.choices.items():
+        for tabsId, actions in self.__initTabsContent.items(): # TODO: Move to functions
+            for action in actions:
+                # Check the type of tab being built
+                if isinstance(action.choices, dict):
+                    # Create a subparser group tab
+                    parserKey: str
+                    parser: argparse.ArgumentParser
+                    for parserKey, parser in action.choices.items():
+                        # Build the tab contents
+                        children = []
+
+                        if parser.description:
+                            children.append(Label(parser.description))
+
+                        # children.extend(self._buildParserInterface()) # TODO: Fix this
+                        children.extend(self._buildActionInputs(self._onlyValidActions(parser._actions)))
+
+                        # Create the tab
+                        newTab = TabPane(
+                            parserKey,
+                            *children,
+                            id=f"{action.dest}_{parserKey}"
+                        )
+
+                        # Add the tab
+                        self.get_widget_by_id(tabsId).add_pane(newTab)
+                else:
+                    # Create a group content tab
                     # Build the tab contents
                     children = []
 
-                    if parser.description:
-                        children.append(Label(parser.description))
+                    if action.help:
+                        children.append(Label(action.help))
 
-                    # children.extend(self._buildParserInterface()) # TODO: Fix this
-                    children.extend(self._buildActionInputs(self._onlyValidActions(parser._actions)))
+                    children.extend(self._buildActionInputs([action]))
 
                     # Create the tab
                     newTab = TabPane(
-                        parserKey,
-                        *children,
-                        id=f"{action.dest}_{parserKey}"
+                        action.dest,
+                        *children
                     )
 
                     # Add the tab
@@ -264,18 +285,19 @@ class Interface(App):
         """
         Yields UI elements for actions of any given `ParserGroup` in tabbed sections.
         """
-        yield Label("TABBED GROUP") # TODO: NOW: Fix this
-        # # Add tabs for inputs
-        # with TabbedContent(id=f"group_{group.title}", classes=self.CLASS_EXCLUSIVE_TAB_BOX):
-        #     for action in group.allActions():
-        #         # Create the tab
-        #         with TabPane(action.dest):
-        #             # Add description
-        #             if action.help:
-        #                 yield Label(action.help)
+        # Create an id
+        tabs = f"group_{group.title}"
 
-        #             # Add the input
-        #             yield from self._buildActionInputs([action])
+        # Store the group actions
+        for action in group.allActions():
+            if tabs not in self.__initTabsContent:
+                self.__initTabsContent[tabs] = [action]
+            else:
+                self.__initTabsContent[tabs].append(action)
+
+        # Yield the tabbed content
+        tabbedContent = TabbedContent(id=tabs, classes=self.CLASS_EXCLUSIVE_TAB_BOX)
+        yield tabbedContent
 
     def _buildActionInputs(self, actions: Iterable[argparse.Action]):
         """
@@ -593,7 +615,10 @@ class Interface(App):
         tabs = f"{action.dest}_subparser"
 
         # Store the action
-        self.__initTabsContent[tabs] = action
+        if tabs not in self.__initTabsContent:
+            self.__initTabsContent[tabs] = [action]
+        else:
+            self.__initTabsContent[tabs].append(action)
 
         # Yield the tabbed content
         tabbedContent = TabbedContent(id=tabs, classes=self.CLASS_SUBPARSER_TAB_BOX)
