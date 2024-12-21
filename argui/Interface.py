@@ -20,6 +20,7 @@ from .ParserMap import ParserMap
 from .ParserGroup import ParserGroup
 from .QuitModal import QuitModal
 from .SubmitModal import SubmitModal
+from .SubmitErrorModal import SubmitErrorModal
 from .debug.ExportDOM import exportDOM
 
 # MARK: Classes
@@ -97,7 +98,7 @@ class Interface(App):
         self._parserMap = ParserMap(parser)
         self._commands: dict[str, Optional[Any]] = {}
         self._listsData: dict[str, tuple[argparse.Action, dict[str, Any]]] = {} # { list id : (action, { list item id : list item }) }
-        self._uiLogger = getLogger(logLevel)
+        self._uiLogger = getLogger(logLevel) # TODO: Convert to the one built into Textual...
         self.__initTabsContent: Optional[dict[str, list[argparse.Action]]] = {} # { tab id : [ action, ... ] }; deleted after use
 
         # Check for the css
@@ -321,7 +322,7 @@ class Interface(App):
             if action.dest in self._commands:
                 self._uiLogger.warning(f"Duplicate command found: {action.dest}")
 
-            self._commands[action.dest] = (action.default or None)
+            self._commands[action.dest] = (action.default or None) # TODO: Load values from previous run?
 
             # Decide what UI to show
             # TODO: Check argparse docs to find any missing deliniations
@@ -770,9 +771,21 @@ class Interface(App):
         """
         Triggers when the user submits the form.
         """
-        # Push submit confirmation
-        # TODO: Add validation before letting the user submit
-        SubmitModal.pushScreen(self)
+        # Check if all required fields are filled
+        # TODO: Add deeper validation checking (piggyback on argparse?)
+        reqActions = self._parserMap.allRequiredActions()
+        missingRequired = [action.dest for action in reqActions if ((action.dest not in self._commands) or (self._commands[action.dest] is None))]
+        if len(missingRequired) > 0:
+            # Report
+            # self._uiLogger.warning("Tried to submit without all required inputs.")
+
+            # Push error modal
+            self.push_screen(SubmitErrorModal(
+                [f"Missing required input: {dest}" for dest in missingRequired]
+            ))
+        else:
+            # Push submit confirmation
+            SubmitModal.pushScreen(self)
 
     # MARK: Handlers
     @on(Switch.Changed, f".{CLASS_SWITCH}")

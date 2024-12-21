@@ -3,7 +3,7 @@
 
 # MARK: Imports
 import os
-from typing import Optional, Callable, Iterable
+from typing import Iterable
 
 from textual import on
 from textual.app import ComposeResult
