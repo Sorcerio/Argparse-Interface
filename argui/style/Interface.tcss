@@ -85,6 +85,11 @@ Screen {
 
                 Input, Switch, Select {
                     background: $boost-lighten-1;
+                    width: 4fr;
+                }
+
+                Button {
+                    width: 1fr;
                 }
             }
 
