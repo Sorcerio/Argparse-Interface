@@ -260,12 +260,14 @@ class Interface(App):
         """
         # Create the required actions as needed
         if group.reqActions:
+            yield Label("Required", classes="sectionTitle")
             yield from self._buildActionInputs(
                 self._onlyValidActions(group.reqActions)
             )
 
         # Create the optional actions as needed
         if group.optActions:
+            yield Label("Optional", classes="sectionTitle")
             yield from self._buildActionInputs(
                 self._onlyValidActions(group.optActions)
             )

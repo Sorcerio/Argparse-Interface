@@ -33,10 +33,17 @@ Screen {
         border: panel $primary;
         border-title-color: $foreground-lighten-2;
         border-title-background: $primary;
+        border-title-style: bold;
         padding: 0;
         margin: 1;
         height: auto;
         background: $surface;
+
+        .sectionTitle {
+            width: 100%;
+            padding: 0 2;
+            background: $primary;
+        }
 
         .inputGroupSection {
             width: 100%;
