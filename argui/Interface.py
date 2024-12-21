@@ -131,6 +131,9 @@ class Interface(App):
         """
         Run after installing the items in `compose()`.
         """
+        # Set the theme
+        self.theme = "flexoki"
+
         # Set the title
         # TODO: Limit max characters combined
         self.title = self.mainTitle
