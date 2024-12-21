@@ -2,6 +2,7 @@
 # Automatic interface for the `argparse` module.
 
 # MARK: Imports
+import re
 import os
 import argparse
 import logging
@@ -176,13 +177,13 @@ class Interface(App):
             if group.isUuidTitle:
                 groupTitle = f"Section {groupIndex + 1}"
             else:
-                groupTitle = " ".join([s.capitalize() for s in group.title.split(" ")])
+                groupTitle = self._toTitleCase(group.title)
 
             # Add the group branch
             groupBranch = tree.root.add(
                 groupTitle,
                 expand=True,
-                data=self.CLASS_NAV_SECTION
+                data=(self.CLASS_NAV_SECTION, group.title)
             )
 
             # Add the actions
@@ -194,8 +195,8 @@ class Interface(App):
 
                 # Add the leaf
                 groupBranch.add_leaf(
-                    f"{action.dest}{infoText}",
-                    data=self.CLASS_NAV_INPUT
+                    f"{self._codeStrToTitle(action.dest)}{infoText}",
+                    data=(self.CLASS_NAV_INPUT, action.dest)
                 )
 
         # Yield the tree
@@ -247,7 +248,7 @@ class Interface(App):
             if group.isUuidTitle:
                 container.border_title = f"Section {groupIndex + 1}"
             else:
-                container.border_title = group.title
+                container.border_title = self._toTitleCase(group.title)
 
             # Send it
             yield container
@@ -376,7 +377,8 @@ class Interface(App):
         """
         # Add a switch
         yield Vertical(
-            Label(action.dest, classes="inputLabel"),
+            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
+            # TODO: help text
             Switch(
                 value=isinstance(action, argparse._StoreTrueAction),
                 tooltip=action.help,
@@ -394,7 +396,8 @@ class Interface(App):
         """
         # Add select dropdown
         yield Vertical(
-            Label(action.dest, classes="inputLabel"),
+            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
+            # TODO: help text
             Select(
                 options=[(str(c), c) for c in action.choices],
                 value=(action.default if (action.default is not None) else action.choices[0]),
@@ -459,7 +462,8 @@ class Interface(App):
         """
         # Add a typed input
         yield Vertical(
-            Label(action.dest, classes="inputLabel"),
+            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
+            # TODO: help text
             self._createInput(
                 action,
                 inputType=inputType,
@@ -525,7 +529,7 @@ class Interface(App):
 
         # Prepare the children
         children = [
-            Label(action.dest, classes="inputLabel"),
+            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
             Vertical(
                 *items.values(),
                 id=listId,
@@ -540,7 +544,7 @@ class Interface(App):
                 name=listId,
                 variant="primary",
                 classes=f"{self.CLASS_LIST_ADD_BTN}",
-                tooltip=f"Add a new item to {action.dest}",
+                tooltip=f"Add a new item to {self._codeStrToTitle(action.dest)}",
                 disabled=((len(items) >= action.nargs) if isinstance(action.nargs, int) else False)
             ))
 
@@ -739,6 +743,30 @@ class Interface(App):
 
         return validDests
 
+    def _toTitleCase(self, s: str) -> str:
+        """
+        Converts a string to title case.
+        """
+        return " ".join([w.capitalize() for w in s.split(" ")])
+
+    def _splitCamelCase(self, s: str) -> str:
+        """
+        Splits a camel case string into words.
+        """
+        return " ".join(re.sub('([A-Z][a-z]+)', r' \1', re.sub('([A-Z]+)', r' \1', s)).split())
+
+    def _splitSnakeCase(self, s: str) -> str:
+        """
+        Splits a snake case string into words.
+        """
+        return " ".join([w for w in s.split("_")])
+
+    def _codeStrToTitle(self, s: str) -> str:
+        """
+        Converts a code stlye string (camelCase or snake_case) to a title case string.
+        """
+        return self._toTitleCase(self._splitCamelCase(self._splitSnakeCase(s)))
+
     def _typedStringToValue(self, s: str, inputType: str) -> Optional[Union[str, int, float]]:
         """
         Converts a typed input string into an `int`, `float`, the `s` string, or `None`.
@@ -912,10 +940,15 @@ class Interface(App):
         """
         Triggered when submitting the form.
         """
-        # Check for a navigatable node
-        if event.node.data == self.CLASS_NAV_INPUT:
-            # Get the target
-            target = self.query_one(f"#{event.node.label}")
-            scrollArea = self.query_one(f"#{self.ID_CONTENT_AREA}")
-            if target and scrollArea:
-                scrollArea.scroll_to_widget(target)
+        # Check for expected data
+        if isinstance(event.node.data, tuple):
+            # Check for a navigatable node
+            nodeType: str
+            dest: str
+            nodeType, dest = event.node.data
+            if nodeType == self.CLASS_NAV_INPUT:
+                # Get the target
+                target = self.query_one(f"#{dest}")
+                scrollArea = self.query_one(f"#{self.ID_CONTENT_AREA}")
+                if target and scrollArea:
+                    scrollArea.scroll_to_widget(target)
