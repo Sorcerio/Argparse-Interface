@@ -18,9 +18,9 @@ from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switc
 from .Logging import getLogger
 from .ParserMap import ParserMap
 from .ParserGroup import ParserGroup
-from .QuitModal import QuitModal
-from .SubmitModal import SubmitModal
-from .SubmitErrorModal import SubmitErrorModal
+from .modals.QuitModal import QuitModal
+from .modals.SubmitModal import SubmitModal
+from .modals.SubmitErrorModal import SubmitErrorModal
 from .debug.ExportDOM import exportDOM
 
 # MARK: Classes

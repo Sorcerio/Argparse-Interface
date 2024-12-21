@@ -17,7 +17,7 @@ class AlertModal(ModalScreen[Button.Pressed]):
     A `ModalScreen` object for providing a basic prompt to the user.
     """
     # Constants
-    CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "AlertModal.tcss")
+    CSS_PATH = os.path.join(os.path.dirname(__file__), "..", "style", "AlertModal.tcss")
     ID_ALERT_ROOT = "alertModal"
     CLASS_ALERT_BTN = "alertButton"
 

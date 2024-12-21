@@ -17,7 +17,7 @@ class SubmitErrorModal(ModalScreen):
     A modal informing the user of any errors that occurred during submission.
     """
     # Constants
-    CSS_PATH = os.path.join(os.path.dirname(__file__), "style", "SubmitErrorModal.tcss")
+    CSS_PATH = os.path.join(os.path.dirname(__file__), "..", "style", "SubmitErrorModal.tcss")
     ERROR_INSTRUCTIONS = "Could not submit because of the following issues:"
     ID_CONTAINER = "submitErrorModal"
     ID_BTN_DISMISS = "dismissButton"
