@@ -6,7 +6,7 @@ from textual.app import App
 from textual.widgets import Button
 
 from .AlertModal import AlertModal
-from .ReturnCodes import ReturnCodes
+from ..ReturnCodes import ReturnCodes
 
 # MARK: Classes
 class SubmitModal(AlertModal):

@@ -33,10 +33,17 @@ Screen {
         border: panel $primary;
         border-title-color: $foreground-lighten-2;
         border-title-background: $primary;
+        border-title-style: bold;
         padding: 0;
         margin: 1;
         height: auto;
         background: $surface;
+
+        .sectionTitle {
+            width: 100%;
+            padding: 0 2;
+            background: $primary;
+        }
 
         .inputGroupSection {
             width: 100%;
@@ -52,18 +59,43 @@ Screen {
         }
 
         .inputLabel {
-            padding: 0 1 1 1;
+            padding: 0 1 0 1;
             margin: 1 0 0 0;
+            background: $primary;
+
+            &.forSubparser {
+                margin-left: 1;
+            }
+        }
+
+        .inputHelp {
+            padding: 0 1 0 2;
+            margin: 0 0 1 0;
+
+            &.forSubparser {
+                margin-left: 1;
+                margin-bottom: 1;
+            }
         }
 
         .listInputContainer {
             height: auto;
 
+            .inputLabel {
+                margin-left: 1;
+                margin-top: 1;
+            }
+
+            .inputHelp {
+                margin-left: 1;
+                margin-bottom: 1;
+            }
+
             .listInputItemBox {
                 background: $surface-lighten-1;
                 height: auto;
                 padding: 1;
-                margin: 0 1 1 1;
+                margin: 0 1 0 1;
                 overflow-y: auto;
 
                 .item {
@@ -78,6 +110,11 @@ Screen {
 
                 Input, Switch, Select {
                     background: $boost-lighten-1;
+                    width: 4fr;
+                }
+
+                Button {
+                    width: 1fr;
                 }
             }
 
@@ -85,6 +122,7 @@ Screen {
                 width: 100%;
                 height: 3;
                 margin: 0 2;
+                margin-top: 1;
             }
         }
 

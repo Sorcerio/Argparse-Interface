@@ -1,0 +1,33 @@
+SubmitErrorModal {
+    align: center middle;
+}
+
+#submitErrorModal {
+    background: $surface;
+
+    width: 50%;
+    height: auto;
+    border: thick $background 80%;
+    padding: 0 1;
+
+    Label {
+        width: 100%;
+
+        &#instrLabel {
+            padding: 0 0 1 0;
+        }
+    }
+
+    Vertical {
+        height: auto;
+        max-height: 10;
+        background: $surface-lighten-1;
+        padding: 1;
+        overflow-y: auto;
+    }
+
+    Button {
+        width: 100%;
+        margin: 1 0 0 0;
+    }
+}

@@ -116,6 +116,18 @@ class ParserMap:
         """
         return self.parser._actions
 
+    def allRequiredActions(self) -> list[argparse.Action]:
+        """
+        Returns all required actions in the parser.
+        """
+        return [a for a in self.allActions() if ParserGroup.isActionRequired(a)]
+
+    def allOptionalActions(self) -> list[argparse.Action]:
+        """
+        Returns all optional actions in the parser.
+        """
+        return [a for a in self.allActions() if (not ParserGroup.isActionRequired(a))]
+
     def print(self):
         """
         Prints the group map to the console.

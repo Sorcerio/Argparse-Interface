@@ -2,6 +2,7 @@
 # Automatic interface for the `argparse` module.
 
 # MARK: Imports
+import re
 import os
 import argparse
 import logging
@@ -18,8 +19,9 @@ from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switc
 from .Logging import getLogger
 from .ParserMap import ParserMap
 from .ParserGroup import ParserGroup
-from .QuitModal import QuitModal
-from .SubmitModal import SubmitModal
+from .modals.QuitModal import QuitModal
+from .modals.SubmitModal import SubmitModal
+from .modals.SubmitErrorModal import SubmitErrorModal
 from .debug.ExportDOM import exportDOM
 
 # MARK: Classes
@@ -97,7 +99,7 @@ class Interface(App):
         self._parserMap = ParserMap(parser)
         self._commands: dict[str, Optional[Any]] = {}
         self._listsData: dict[str, tuple[argparse.Action, dict[str, Any]]] = {} # { list id : (action, { list item id : list item }) }
-        self._uiLogger = getLogger(logLevel)
+        self._uiLogger = getLogger(logLevel) # TODO: Convert to the one built into Textual...
         self.__initTabsContent: Optional[dict[str, list[argparse.Action]]] = {} # { tab id : [ action, ... ] }; deleted after use
 
         # Check for the css
@@ -130,6 +132,9 @@ class Interface(App):
         """
         Run after installing the items in `compose()`.
         """
+        # Set the theme
+        self.theme = "flexoki"
+
         # Set the title
         # TODO: Limit max characters combined
         self.title = self.mainTitle
@@ -172,13 +177,13 @@ class Interface(App):
             if group.isUuidTitle:
                 groupTitle = f"Section {groupIndex + 1}"
             else:
-                groupTitle = " ".join([s.capitalize() for s in group.title.split(" ")])
+                groupTitle = self._toTitleCase(group.title)
 
             # Add the group branch
             groupBranch = tree.root.add(
                 groupTitle,
                 expand=True,
-                data=self.CLASS_NAV_SECTION
+                data=(self.CLASS_NAV_SECTION, group.title)
             )
 
             # Add the actions
@@ -190,9 +195,15 @@ class Interface(App):
 
                 # Add the leaf
                 groupBranch.add_leaf(
-                    f"{action.dest}{infoText}",
-                    data=self.CLASS_NAV_INPUT
+                    f"{self._codeStrToTitle(action.dest)}{infoText}",
+                    data=(self.CLASS_NAV_INPUT, action.dest)
                 )
+
+        # Add submit leaf
+        tree.root.add_leaf(
+            "Submit",
+            data=(self.CLASS_NAV_INPUT, self.ID_SUBMIT_BTN)
+        )
 
         # Yield the tree
         return tree
@@ -243,7 +254,7 @@ class Interface(App):
             if group.isUuidTitle:
                 container.border_title = f"Section {groupIndex + 1}"
             else:
-                container.border_title = group.title
+                container.border_title = self._toTitleCase(group.title)
 
             # Send it
             yield container
@@ -256,12 +267,14 @@ class Interface(App):
         """
         # Create the required actions as needed
         if group.reqActions:
+            yield Label("Required", classes="sectionTitle")
             yield from self._buildActionInputs(
                 self._onlyValidActions(group.reqActions)
             )
 
         # Create the optional actions as needed
         if group.optActions:
+            yield Label("Optional", classes="sectionTitle")
             yield from self._buildActionInputs(
                 self._onlyValidActions(group.optActions)
             )
@@ -281,9 +294,8 @@ class Interface(App):
             else:
                 self.__initTabsContent[tabs].append(action)
 
-        # Yield the tabbed content
-        tabbedContent = TabbedContent(id=tabs, classes=self.CLASS_EXCLUSIVE_TAB_BOX)
-        yield tabbedContent
+        # Yield initial content
+        yield TabbedContent(id=tabs, classes=self.CLASS_EXCLUSIVE_TAB_BOX)
 
     def _installTabbedGroupContent(self, tabsId: str, action: argparse.Action):
         """
@@ -292,18 +304,10 @@ class Interface(App):
         tabsId: The id of the `TabbedContent` object to install the `TabPane` objects into.
         action: The `argparse` action to build from.
         """
-        # Build the tab contents
-        children = []
-
-        if action.help:
-            children.append(Label(action.help, classes="tabHelp"))
-
-        children.extend(self._buildActionInputs([action]))
-
         # Create the tab
         newTab = TabPane(
             action.dest,
-            *children
+            *self._buildActionInputs([action])
         )
 
         # Add the tab
@@ -321,7 +325,7 @@ class Interface(App):
             if action.dest in self._commands:
                 self._uiLogger.warning(f"Duplicate command found: {action.dest}")
 
-            self._commands[action.dest] = (action.default or None)
+            self._commands[action.dest] = (action.default or None) # TODO: Load values from previous run?
 
             # Decide what UI to show
             # TODO: Check argparse docs to find any missing deliniations
@@ -370,7 +374,8 @@ class Interface(App):
         """
         # Add a switch
         yield Vertical(
-            Label(action.dest, classes="inputLabel"),
+            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
+            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
             Switch(
                 value=isinstance(action, argparse._StoreTrueAction),
                 tooltip=action.help,
@@ -388,7 +393,8 @@ class Interface(App):
         """
         # Add select dropdown
         yield Vertical(
-            Label(action.dest, classes="inputLabel"),
+            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
+            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
             Select(
                 options=[(str(c), c) for c in action.choices],
                 value=(action.default if (action.default is not None) else action.choices[0]),
@@ -453,7 +459,8 @@ class Interface(App):
         """
         # Add a typed input
         yield Vertical(
-            Label(action.dest, classes="inputLabel"),
+            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
+            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
             self._createInput(
                 action,
                 inputType=inputType,
@@ -519,7 +526,8 @@ class Interface(App):
 
         # Prepare the children
         children = [
-            Label(action.dest, classes="inputLabel"),
+            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
+            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
             Vertical(
                 *items.values(),
                 id=listId,
@@ -534,7 +542,7 @@ class Interface(App):
                 name=listId,
                 variant="primary",
                 classes=f"{self.CLASS_LIST_ADD_BTN}",
-                tooltip=f"Add a new item to {action.dest}",
+                tooltip=f"Add a new item to {self._codeStrToTitle(action.dest)}",
                 disabled=((len(items) >= action.nargs) if isinstance(action.nargs, int) else False)
             ))
 
@@ -632,8 +640,9 @@ class Interface(App):
             self.__initTabsContent[tabs].append(action)
 
         # Yield the tabbed content
-        tabbedContent = TabbedContent(id=tabs, classes=self.CLASS_SUBPARSER_TAB_BOX)
-        yield tabbedContent
+        yield Label(self._codeStrToTitle(action.dest), classes="inputLabel forSubparser")
+        yield Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp forSubparser")
+        yield TabbedContent(id=tabs, classes=self.CLASS_SUBPARSER_TAB_BOX)
 
     def _installSubparserGroupContent(self, tabsId: str, action: argparse.Action):
         """
@@ -733,6 +742,30 @@ class Interface(App):
 
         return validDests
 
+    def _toTitleCase(self, s: str) -> str:
+        """
+        Converts a string to title case.
+        """
+        return " ".join([w.capitalize() for w in s.split(" ")])
+
+    def _splitCamelCase(self, s: str) -> str:
+        """
+        Splits a camel case string into words.
+        """
+        return " ".join(re.sub('([A-Z][a-z]+)', r' \1', re.sub('([A-Z]+)', r' \1', s)).split())
+
+    def _splitSnakeCase(self, s: str) -> str:
+        """
+        Splits a snake case string into words.
+        """
+        return " ".join([w for w in s.split("_")])
+
+    def _codeStrToTitle(self, s: str) -> str:
+        """
+        Converts a code stlye string (camelCase or snake_case) to a title case string.
+        """
+        return self._toTitleCase(self._splitCamelCase(self._splitSnakeCase(s)))
+
     def _typedStringToValue(self, s: str, inputType: str) -> Optional[Union[str, int, float]]:
         """
         Converts a typed input string into an `int`, `float`, the `s` string, or `None`.
@@ -770,9 +803,21 @@ class Interface(App):
         """
         Triggers when the user submits the form.
         """
-        # Push submit confirmation
-        # TODO: Add validation before letting the user submit
-        SubmitModal.pushScreen(self)
+        # Check if all required fields are filled
+        # TODO: Add deeper validation checking (piggyback on argparse?)
+        reqActions = self._parserMap.allRequiredActions()
+        missingRequired = [action.dest for action in reqActions if ((action.dest not in self._commands) or (self._commands[action.dest] is None))]
+        if len(missingRequired) > 0:
+            # Report
+            # self._uiLogger.warning("Tried to submit without all required inputs.")
+
+            # Push error modal
+            self.push_screen(SubmitErrorModal(
+                [f"Missing required input: {dest}" for dest in missingRequired]
+            ))
+        else:
+            # Push submit confirmation
+            SubmitModal.pushScreen(self)
 
     # MARK: Handlers
     @on(Switch.Changed, f".{CLASS_SWITCH}")
@@ -894,10 +939,15 @@ class Interface(App):
         """
         Triggered when submitting the form.
         """
-        # Check for a navigatable node
-        if event.node.data == self.CLASS_NAV_INPUT:
-            # Get the target
-            target = self.query_one(f"#{event.node.label}")
-            scrollArea = self.query_one(f"#{self.ID_CONTENT_AREA}")
-            if target and scrollArea:
-                scrollArea.scroll_to_widget(target)
+        # Check for expected data
+        if isinstance(event.node.data, tuple):
+            # Check for a navigatable node
+            nodeType: str
+            dest: str
+            nodeType, dest = event.node.data
+            if nodeType == self.CLASS_NAV_INPUT:
+                # Get the target
+                target = self.query_one(f"#{dest}")
+                scrollArea = self.query_one(f"#{self.ID_CONTENT_AREA}")
+                if target and scrollArea:
+                    scrollArea.scroll_to_widget(target)
