@@ -59,18 +59,34 @@ Screen {
         }
 
         .inputLabel {
-            padding: 0 1 1 1;
+            padding: 0 1 0 1;
             margin: 1 0 0 0;
+            background: $primary;
+        }
+
+        .inputHelp {
+            padding: 0 1 0 2;
+            margin: 0 0 1 0;
         }
 
         .listInputContainer {
             height: auto;
 
+            .inputLabel {
+                margin-left: 1;
+                margin-top: 1;
+            }
+
+            .inputHelp {
+                margin-left: 1;
+                margin-bottom: 1;
+            }
+
             .listInputItemBox {
                 background: $surface-lighten-1;
                 height: auto;
                 padding: 1;
-                margin: 0 1 1 1;
+                margin: 0 1 0 1;
                 overflow-y: auto;
 
                 .item {
@@ -97,6 +113,7 @@ Screen {
                 width: 100%;
                 height: 3;
                 margin: 0 2;
+                margin-top: 1;
             }
         }
 

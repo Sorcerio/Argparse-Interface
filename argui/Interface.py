@@ -299,18 +299,10 @@ class Interface(App):
         tabsId: The id of the `TabbedContent` object to install the `TabPane` objects into.
         action: The `argparse` action to build from.
         """
-        # Build the tab contents
-        children = []
-
-        if action.help:
-            children.append(Label(action.help, classes="tabHelp"))
-
-        children.extend(self._buildActionInputs([action]))
-
         # Create the tab
         newTab = TabPane(
             action.dest,
-            *children
+            *self._buildActionInputs([action])
         )
 
         # Add the tab
@@ -378,7 +370,7 @@ class Interface(App):
         # Add a switch
         yield Vertical(
             Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
-            # TODO: help text
+            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
             Switch(
                 value=isinstance(action, argparse._StoreTrueAction),
                 tooltip=action.help,
@@ -397,7 +389,7 @@ class Interface(App):
         # Add select dropdown
         yield Vertical(
             Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
-            # TODO: help text
+            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
             Select(
                 options=[(str(c), c) for c in action.choices],
                 value=(action.default if (action.default is not None) else action.choices[0]),
@@ -463,7 +455,7 @@ class Interface(App):
         # Add a typed input
         yield Vertical(
             Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
-            # TODO: help text
+            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
             self._createInput(
                 action,
                 inputType=inputType,
@@ -530,6 +522,7 @@ class Interface(App):
         # Prepare the children
         children = [
             Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
+            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
             Vertical(
                 *items.values(),
                 id=listId,
