@@ -5,3 +5,5 @@ test.py
 argui/argparse_interface.egg-info
 argui.log
 dom.json
+*.egg-info
+_old/
