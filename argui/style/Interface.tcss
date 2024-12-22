@@ -62,11 +62,20 @@ Screen {
             padding: 0 1 0 1;
             margin: 1 0 0 0;
             background: $primary;
+
+            &.forSubparser {
+                margin-left: 1;
+            }
         }
 
         .inputHelp {
             padding: 0 1 0 2;
             margin: 0 0 1 0;
+
+            &.forSubparser {
+                margin-left: 1;
+                margin-bottom: 1;
+            }
         }
 
         .listInputContainer {

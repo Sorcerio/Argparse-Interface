@@ -288,9 +288,8 @@ class Interface(App):
             else:
                 self.__initTabsContent[tabs].append(action)
 
-        # Yield the tabbed content
-        tabbedContent = TabbedContent(id=tabs, classes=self.CLASS_EXCLUSIVE_TAB_BOX)
-        yield tabbedContent
+        # Yield initial content
+        yield TabbedContent(id=tabs, classes=self.CLASS_EXCLUSIVE_TAB_BOX)
 
     def _installTabbedGroupContent(self, tabsId: str, action: argparse.Action):
         """
@@ -635,8 +634,9 @@ class Interface(App):
             self.__initTabsContent[tabs].append(action)
 
         # Yield the tabbed content
-        tabbedContent = TabbedContent(id=tabs, classes=self.CLASS_SUBPARSER_TAB_BOX)
-        yield tabbedContent
+        yield Label(self._codeStrToTitle(action.dest), classes="inputLabel forSubparser")
+        yield Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp forSubparser")
+        yield TabbedContent(id=tabs, classes=self.CLASS_SUBPARSER_TAB_BOX)
 
     def _installSubparserGroupContent(self, tabsId: str, action: argparse.Action):
         """
