@@ -199,6 +199,12 @@ class Interface(App):
                     data=(self.CLASS_NAV_INPUT, action.dest)
                 )
 
+        # Add submit leaf
+        tree.root.add_leaf(
+            "Submit",
+            data=(self.CLASS_NAV_INPUT, self.ID_SUBMIT_BTN)
+        )
+
         # Yield the tree
         return tree
 
