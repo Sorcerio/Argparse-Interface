@@ -21,18 +21,21 @@ class Wrapper:
     def __init__(self,
         parser: argparse.ArgumentParser,
         guiFlag: str = "--gui",
+        guiHelp: str = "Show the gui interface",
         logLevel: int = logging.INFO,
         debugUI: bool = False,
     ):
         """
         parser: The top-level `ArgumentParser` object to use in the interface.
         guiFlag: The flag to use to indicate that the gui should be shown.
+        guiHelp: The help text to use for the gui flag.
         logLevel: The logging level to use.
         debugUI: If `True`, the debug elements will be shown.
         """
         # Record data
         self._parser = parser
         self.guiFlag = guiFlag
+        self.guiHelp = guiHelp
         self.showDebugUI = debugUI
         self._logger = getLogger(logLevel)
 
@@ -103,5 +106,4 @@ class Wrapper:
         parser: The parser to add the argument to.
         """
         # Add the argument
-        # TODO: Let user provide the help text
-        parser.add_argument(self.guiFlag, action="store_true", help="Show the gui interface")
+        parser.add_argument(self.guiFlag, action="store_true", help=self.guiHelp)
