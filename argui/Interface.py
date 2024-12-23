@@ -377,7 +377,8 @@ class Interface(App):
             Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
             Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
             Switch(
-                value=isinstance(action, argparse._StoreTrueAction),
+                # If by providing the flag the result value is False, then the switch should be the opposite
+                value=isinstance(action, argparse._StoreFalseAction),
                 tooltip=action.help,
                 id=action.dest,
                 classes=f"{self.CLASS_SWITCH}"
