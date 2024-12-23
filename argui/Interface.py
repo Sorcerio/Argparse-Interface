@@ -74,13 +74,13 @@ class Interface(App):
     # MARK: Constructor
     def __init__(self,
         parser: argparse.ArgumentParser,
-        guiFlag: str, # TODO: General blacklist of args
+        guiFlag: str,
         title: str = "Argparse Interface",
         subTitle: str = ""
     ) -> None:
         """
         parser: The top-level `ArgumentParser` object to use in the interface.
-        guiFlag: The flag to use to indicate that the gui should be shown.
+        guiFlag: The flag used to indicate that the gui should be shown. This will be hidden from the interface.
         title: The title of the interface.
         subTitle: The subtitle of the interface.
         """
