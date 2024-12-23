@@ -132,9 +132,8 @@ class Interface(App):
         self.theme = "flexoki"
 
         # Set the title
-        # TODO: Limit max characters combined
         self.title = self.mainTitle
-        self.sub_title = self.mainSubtitle
+        self.sub_title = self._limitString(self.mainSubtitle, 64)
 
         # Install any tabs
         for tabsId, actions in self.__initTabsContent.items():
@@ -787,6 +786,19 @@ class Interface(App):
         Exports the Textual DOM that is currently displayed.
         """
         exportDOM(self.screen)
+
+    def _limitString(self, s: str, maxChars: int, postfix: str = "..."):
+        """
+        Limits a string to a certain number of characters, adding a postfix if the string is longer than the limit.
+        Takes the length of the postfix into account.
+
+        s: The string to limit.
+        maxChars: The maximum number of characters the string should have.
+        postfix: The postfix to add to the string if it is longer than the limit.
+        """
+        if len(s) <= maxChars:
+            return s
+        return s[:maxChars - len(postfix) + 1] + postfix
 
     # MARK: Actions
     def action_onQuit(self):
