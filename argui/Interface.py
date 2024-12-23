@@ -5,7 +5,6 @@
 import re
 import os
 import argparse
-import logging
 import uuid
 from typing import Union, Optional, Any, Iterable
 
@@ -77,15 +76,13 @@ class Interface(App):
         parser: argparse.ArgumentParser,
         guiFlag: str, # TODO: General blacklist of args
         title: str = "Argparse Interface",
-        subTitle: str = "",
-        logLevel: int = logging.WARN
+        subTitle: str = ""
     ) -> None:
         """
         parser: The top-level `ArgumentParser` object to use in the interface.
         guiFlag: The flag to use to indicate that the gui should be shown.
         title: The title of the interface.
         subTitle: The subtitle of the interface.
-        logLevel: The logging level to use.
         """
         # Super
         super().__init__()
@@ -99,12 +96,11 @@ class Interface(App):
         self._parserMap = ParserMap(parser)
         self._commands: dict[str, Optional[Any]] = {}
         self._listsData: dict[str, tuple[argparse.Action, dict[str, Any]]] = {} # { list id : (action, { list item id : list item }) }
-        self._uiLogger = getLogger(logLevel) # TODO: Convert to the one built into Textual...
         self.__initTabsContent: Optional[dict[str, list[argparse.Action]]] = {} # { tab id : [ action, ... ] }; deleted after use
 
         # Check for the css
         if not os.path.exists(self.CSS_PATH):
-            self._uiLogger.error(f"Could not find the css file at: {self.CSS_PATH}")
+            self.log(error=f"Could not find the css file at: {self.CSS_PATH}")
 
     # MARK: Lifecycle
     def compose(self) -> ComposeResult:
@@ -323,7 +319,7 @@ class Interface(App):
         for action in actions:
             # Record the parser key
             if action.dest in self._commands:
-                self._uiLogger.warning(f"Duplicate command found: {action.dest}")
+                self.log(warn=f"Duplicate command found: {action.dest}")
 
             self._commands[action.dest] = (action.default or None) # TODO: Load values from previous run?
 
@@ -364,7 +360,7 @@ class Interface(App):
                     yield from self._buildTypedInput(action)
             else:
                 # Report
-                self._uiLogger.warning(f"Unknown action type: {action}")
+                self.log(warn=f"Unknown action type: {action}")
 
     def _buildSwitchInput(self, action: argparse.Action):
         """
@@ -810,7 +806,7 @@ class Interface(App):
         missingRequired = [action.dest for action in reqActions if ((action.dest not in self._commands) or (self._commands[action.dest] is None))]
         if len(missingRequired) > 0:
             # Report
-            # self._uiLogger.warning("Tried to submit without all required inputs.")
+            self.log(warn="Tried to submit without all required inputs.")
 
             # Push error modal
             self.push_screen(SubmitErrorModal(
@@ -827,7 +823,7 @@ class Interface(App):
         Triggered when an input switch is changed.
         """
         self._commands[event.switch.id] = event.value
-        self._uiLogger.debug(f"Switch changed: {event.switch.id} -> {event.value}")
+        self.log(debug=f"Switch changed: {event.switch.id} -> {event.value}")
 
     @on(Select.Changed, f".{CLASS_DROPDOWN}")
     def inputDropdownChanged(self, event: Select.Changed) -> None:
@@ -835,7 +831,7 @@ class Interface(App):
         Triggered when an input dropdown is changed.
         """
         self._commands[event.select.id] = event.value
-        self._uiLogger.debug(f"Dropdown changed: {event.select.id} -> {event.value}")
+        self.log(debug=f"Dropdown changed: {event.select.id} -> {event.value}")
 
     @on(Input.Changed, f".{CLASS_TYPED_TEXT}")
     def inputTypedChanged(self, event: Input.Changed) -> None:
@@ -847,7 +843,7 @@ class Interface(App):
 
         # Update
         self._commands[event.input.id] = val
-        self._uiLogger.debug(f"Text changed: {event.input.id} -> {val} ({type(val)})")
+        self.log(debug=f"Text changed: {event.input.id} -> {val} ({type(val)})")
 
     @on(Input.Changed, f".{CLASS_LIST_TEXT}")
     def inputTypedInListChanged(self, event: Input.Changed) -> None:
@@ -864,7 +860,7 @@ class Interface(App):
         self._commands[dest][id] = val
 
         # Report
-        self._uiLogger.debug(f"List based text changed: {event.input.id} -> {val} ({type(val)})")
+        self.log(debug=f"List based text changed: {event.input.id} -> {val} ({type(val)})")
 
     @on(Button.Pressed, f".{CLASS_LIST_ADD_BTN}")
     def listAddButtonPressed(self, event: Button.Pressed) -> None:

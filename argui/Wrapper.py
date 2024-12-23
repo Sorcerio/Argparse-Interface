@@ -4,7 +4,7 @@
 # MARK: Imports
 import argparse
 import logging
-from typing import Union, Optional, Any
+from typing import Optional
 
 from .Interface import Interface
 from .Logging import getLogger
@@ -22,8 +22,7 @@ class Wrapper:
         parser: argparse.ArgumentParser,
         guiFlag: str = "--gui",
         guiHelp: str = "Show the gui interface",
-        logLevel: int = logging.INFO,
-        debugUI: bool = False,
+        logLevel: int = logging.INFO
     ):
         """
         parser: The top-level `ArgumentParser` object to use in the interface.
@@ -36,7 +35,6 @@ class Wrapper:
         self._parser = parser
         self.guiFlag = guiFlag
         self.guiHelp = guiHelp
-        self.showDebugUI = debugUI
         self._logger = getLogger(logLevel)
 
         # Add the gui argument to the parser
