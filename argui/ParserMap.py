@@ -107,7 +107,7 @@ class ParserMap:
         """
         Generator that excludes actions by their destination.
         """
-        return (a for a in actions if not ((a.option_strings in excludes) or (isinstance(a, argparse._HelpAction) and not keepHelp)))
+        return (a for a in actions if not (any(opt in excludes for opt in a.option_strings) or (isinstance(a, argparse._HelpAction) and not keepHelp)))
 
     # MARK: Functions
     def allActions(self) -> list[argparse.Action]:

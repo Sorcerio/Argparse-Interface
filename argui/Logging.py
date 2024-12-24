@@ -4,6 +4,8 @@
 # MARK: Imports
 import logging
 
+from textual.logging import TextualHandler
+
 # MARK: Constants
 LOG_TO_FILE = False
 LOG_FILENAME = "argui.log"
@@ -29,6 +31,9 @@ def getLogger(level: int, name: str = LOGGER_NAME) -> logging.Logger:
     logHandler.setFormatter(formatter)
 
     logger.addHandler(logHandler)
+
+    # Setup Textual's log handler
+    logger.addHandler(TextualHandler())
 
     # Setup file log
     if LOG_TO_FILE:

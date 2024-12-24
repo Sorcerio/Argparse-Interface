@@ -3,8 +3,8 @@
 An automatic, terminal based interactive interface for any Python 3 `argparse` command line with keyboard and mouse support.
 
 - [Argparse Interface](#argparse-interface)
-  - [Install](#install)
   - [Usage](#usage)
+    - [Install as a Dependency](#install-as-a-dependency)
     - [Setup Your Argparse](#setup-your-argparse)
     - [Use the Command Line](#use-the-command-line)
     - [Navigation](#navigation)
@@ -12,15 +12,15 @@ An automatic, terminal based interactive interface for any Python 3 `argparse` c
 
 ---
 
-## Install
+## Usage
+
+### Install as a Dependency
 
 1. Clone this repo to the desired location.
 1. Access this directory with your desired environment.
 1. Install this repo as a package: `pip install -e .`
 
 A PyPi release may come in the future.
-
-## Usage
 
 ### Setup Your Argparse
 

@@ -5,7 +5,6 @@
 import re
 import os
 import argparse
-import logging
 import uuid
 from typing import Union, Optional, Any, Iterable
 
@@ -75,17 +74,17 @@ class Interface(App):
     # MARK: Constructor
     def __init__(self,
         parser: argparse.ArgumentParser,
-        guiFlag: str, # TODO: General blacklist of args
+        guiFlag: str,
         title: str = "Argparse Interface",
         subTitle: str = "",
-        logLevel: int = logging.WARN
+        icon: Optional[str] = "⛽"
     ) -> None:
         """
         parser: The top-level `ArgumentParser` object to use in the interface.
-        guiFlag: The flag to use to indicate that the gui should be shown.
+        guiFlag: The flag used to indicate that the gui should be shown. This will be hidden from the interface.
         title: The title of the interface.
         subTitle: The subtitle of the interface.
-        logLevel: The logging level to use.
+        icon: A single character icon to display in the header or `None`.
         """
         # Super
         super().__init__()
@@ -95,16 +94,15 @@ class Interface(App):
         self.mainSubtitle = subTitle
         self.guiFlag = guiFlag
 
-        # self._parserMap.parser = parser
+        self._icon = icon
         self._parserMap = ParserMap(parser)
         self._commands: dict[str, Optional[Any]] = {}
         self._listsData: dict[str, tuple[argparse.Action, dict[str, Any]]] = {} # { list id : (action, { list item id : list item }) }
-        self._uiLogger = getLogger(logLevel) # TODO: Convert to the one built into Textual...
         self.__initTabsContent: Optional[dict[str, list[argparse.Action]]] = {} # { tab id : [ action, ... ] }; deleted after use
 
         # Check for the css
         if not os.path.exists(self.CSS_PATH):
-            self._uiLogger.error(f"Could not find the css file at: {self.CSS_PATH}")
+            self.log(error=f"Could not find the css file at: {self.CSS_PATH}")
 
     # MARK: Lifecycle
     def compose(self) -> ComposeResult:
@@ -113,18 +111,18 @@ class Interface(App):
         """
         # Prep the list
         elements = [
-            Header(icon="⛽"),
+            Header(icon=self._icon),
             Horizontal(
-            Vertical(
-                self._buildNavigatorArea(),
-                id=self.ID_NAV_AREA
-            ),
-            Vertical(
-                *self._buildContentArea(),
-                id=self.ID_CONTENT_AREA
-            ),
-            Footer()
-        )
+                Vertical(
+                    self._buildNavigatorArea(),
+                    id=self.ID_NAV_AREA
+                ),
+                Vertical(
+                    *self._buildContentArea(),
+                    id=self.ID_CONTENT_AREA
+                ),
+                Footer()
+            )
         ]
         return elements
 
@@ -136,9 +134,8 @@ class Interface(App):
         self.theme = "flexoki"
 
         # Set the title
-        # TODO: Limit max characters combined
         self.title = self.mainTitle
-        self.sub_title = self.mainSubtitle
+        self.sub_title = self._limitString(self.mainSubtitle, 64)
 
         # Install any tabs
         for tabsId, actions in self.__initTabsContent.items():
@@ -323,7 +320,7 @@ class Interface(App):
         for action in actions:
             # Record the parser key
             if action.dest in self._commands:
-                self._uiLogger.warning(f"Duplicate command found: {action.dest}")
+                self.log(warn=f"Duplicate command found: {action.dest}")
 
             self._commands[action.dest] = (action.default or None) # TODO: Load values from previous run?
 
@@ -364,7 +361,7 @@ class Interface(App):
                     yield from self._buildTypedInput(action)
             else:
                 # Report
-                self._uiLogger.warning(f"Unknown action type: {action}")
+                self.log(warn=f"Unknown action type: {action}")
 
     def _buildSwitchInput(self, action: argparse.Action):
         """
@@ -377,7 +374,8 @@ class Interface(App):
             Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
             Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
             Switch(
-                value=isinstance(action, argparse._StoreTrueAction),
+                # If by providing the flag the result value is False, then the switch should be the opposite
+                value=isinstance(action, argparse._StoreFalseAction),
                 tooltip=action.help,
                 id=action.dest,
                 classes=f"{self.CLASS_SWITCH}"
@@ -791,6 +789,19 @@ class Interface(App):
         """
         exportDOM(self.screen)
 
+    def _limitString(self, s: str, maxChars: int, postfix: str = "..."):
+        """
+        Limits a string to a certain number of characters, adding a postfix if the string is longer than the limit.
+        Takes the length of the postfix into account.
+
+        s: The string to limit.
+        maxChars: The maximum number of characters the string should have.
+        postfix: The postfix to add to the string if it is longer than the limit.
+        """
+        if len(s) <= maxChars:
+            return s
+        return s[:maxChars - len(postfix) + 1] + postfix
+
     # MARK: Actions
     def action_onQuit(self):
         """
@@ -809,7 +820,7 @@ class Interface(App):
         missingRequired = [action.dest for action in reqActions if ((action.dest not in self._commands) or (self._commands[action.dest] is None))]
         if len(missingRequired) > 0:
             # Report
-            # self._uiLogger.warning("Tried to submit without all required inputs.")
+            self.log(warn="Tried to submit without all required inputs.")
 
             # Push error modal
             self.push_screen(SubmitErrorModal(
@@ -826,7 +837,7 @@ class Interface(App):
         Triggered when an input switch is changed.
         """
         self._commands[event.switch.id] = event.value
-        self._uiLogger.debug(f"Switch changed: {event.switch.id} -> {event.value}")
+        self.log(debug=f"Switch changed: {event.switch.id} -> {event.value}")
 
     @on(Select.Changed, f".{CLASS_DROPDOWN}")
     def inputDropdownChanged(self, event: Select.Changed) -> None:
@@ -834,7 +845,7 @@ class Interface(App):
         Triggered when an input dropdown is changed.
         """
         self._commands[event.select.id] = event.value
-        self._uiLogger.debug(f"Dropdown changed: {event.select.id} -> {event.value}")
+        self.log(debug=f"Dropdown changed: {event.select.id} -> {event.value}")
 
     @on(Input.Changed, f".{CLASS_TYPED_TEXT}")
     def inputTypedChanged(self, event: Input.Changed) -> None:
@@ -846,7 +857,7 @@ class Interface(App):
 
         # Update
         self._commands[event.input.id] = val
-        self._uiLogger.debug(f"Text changed: {event.input.id} -> {val} ({type(val)})")
+        self.log(debug=f"Text changed: {event.input.id} -> {val} ({type(val)})")
 
     @on(Input.Changed, f".{CLASS_LIST_TEXT}")
     def inputTypedInListChanged(self, event: Input.Changed) -> None:
@@ -863,7 +874,7 @@ class Interface(App):
         self._commands[dest][id] = val
 
         # Report
-        self._uiLogger.debug(f"List based text changed: {event.input.id} -> {val} ({type(val)})")
+        self.log(debug=f"List based text changed: {event.input.id} -> {val} ({type(val)})")
 
     @on(Button.Pressed, f".{CLASS_LIST_ADD_BTN}")
     def listAddButtonPressed(self, event: Button.Pressed) -> None:
