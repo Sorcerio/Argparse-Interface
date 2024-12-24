@@ -111,16 +111,16 @@ class Interface(App):
         elements = [
             Header(icon="⛽"),
             Horizontal(
-            Vertical(
-                self._buildNavigatorArea(),
-                id=self.ID_NAV_AREA
-            ),
-            Vertical(
-                *self._buildContentArea(),
-                id=self.ID_CONTENT_AREA
-            ),
-            Footer()
-        )
+                Vertical(
+                    self._buildNavigatorArea(),
+                    id=self.ID_NAV_AREA
+                ),
+                Vertical(
+                    *self._buildContentArea(),
+                    id=self.ID_CONTENT_AREA
+                ),
+                Footer()
+            )
         ]
         return elements
 
