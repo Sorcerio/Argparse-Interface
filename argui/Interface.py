@@ -76,13 +76,15 @@ class Interface(App):
         parser: argparse.ArgumentParser,
         guiFlag: str,
         title: str = "Argparse Interface",
-        subTitle: str = ""
+        subTitle: str = "",
+        icon: Optional[str] = "⛽"
     ) -> None:
         """
         parser: The top-level `ArgumentParser` object to use in the interface.
         guiFlag: The flag used to indicate that the gui should be shown. This will be hidden from the interface.
         title: The title of the interface.
         subTitle: The subtitle of the interface.
+        icon: A single character icon to display in the header or `None`.
         """
         # Super
         super().__init__()
@@ -92,7 +94,7 @@ class Interface(App):
         self.mainSubtitle = subTitle
         self.guiFlag = guiFlag
 
-        # self._parserMap.parser = parser
+        self._icon = icon
         self._parserMap = ParserMap(parser)
         self._commands: dict[str, Optional[Any]] = {}
         self._listsData: dict[str, tuple[argparse.Action, dict[str, Any]]] = {} # { list id : (action, { list item id : list item }) }
@@ -109,7 +111,7 @@ class Interface(App):
         """
         # Prep the list
         elements = [
-            Header(icon="⛽"),
+            Header(icon=self._icon),
             Horizontal(
                 Vertical(
                     self._buildNavigatorArea(),

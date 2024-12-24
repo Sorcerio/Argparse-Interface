@@ -22,6 +22,7 @@ class Wrapper:
         parser: argparse.ArgumentParser,
         guiFlag: str = "--gui",
         guiHelp: str = "Show the gui interface",
+        icon: Optional[str] = "⛽",
         logLevel: int = logging.INFO
     ):
         """
@@ -29,12 +30,14 @@ class Wrapper:
         guiFlag: The flag to use to indicate that the gui should be shown.
         guiHelp: The help text to use for the gui flag.
         logLevel: The logging level to use.
+        icon: A single character icon to display in the interface's header or `None`.
         debugUI: If `True`, the debug elements will be shown.
         """
         # Record data
         self._parser = parser
         self.guiFlag = guiFlag
         self.guiHelp = guiHelp
+        self._icon = icon
         self._logger = getLogger(logLevel)
 
         # Add the gui argument to the parser
@@ -79,6 +82,7 @@ class Wrapper:
             self.guiFlag,
             title=self._parser.prog,
             subTitle=self._parser.description or Interface.SUB_TITLE,
+            icon=self._icon
         )
         returnCode: ReturnCodes = gui.run()
 
