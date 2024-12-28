@@ -15,7 +15,6 @@ setup(
         "": ["style/*.tcss"]
     },
     author="Sorcerio",
-    author_email="your.email@example.com",
     description="An automatic, terminal based interactive interface for any Python 3 `argparse` command line with keyboard and mouse support.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",

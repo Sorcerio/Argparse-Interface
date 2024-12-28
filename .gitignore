@@ -7,3 +7,7 @@ argui.log
 dom.json
 *.egg-info
 _old/
+build/
+dist/
+demo/
+*.psd

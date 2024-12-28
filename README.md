@@ -1,16 +1,25 @@
-# Argparse Interface
+# ArgUI
+
+![ArgUI's Logo](/assets/ArgUILogo_transparent.png)
 
 An automatic, terminal based interactive interface for any Python 3 `argparse` command line with keyboard and mouse support.
 
-- [Argparse Interface](#argparse-interface)
+- [ArgUI](#argui)
+  - [See It in Action](#see-it-in-action)
   - [Usage](#usage)
     - [Install as a Dependency](#install-as-a-dependency)
     - [Setup Your Argparse](#setup-your-argparse)
-    - [Use the Command Line](#use-the-command-line)
+    - [Run Your Program](#run-your-program)
     - [Navigation](#navigation)
   - [Development Setup](#development-setup)
 
 ---
+
+## See It in Action
+
+![Demo of the features in ArgUI](/assets/ArgUIDemo_small.gif)
+
+Get a feel for the features of ArgUI using the [Demo.py](./argui/Demo.py) code included in this project.
 
 ## Usage
 
@@ -23,6 +32,9 @@ An automatic, terminal based interactive interface for any Python 3 `argparse` c
 A PyPi release may come in the future.
 
 ### Setup Your Argparse
+
+ArgUI supports wrapping any implementation of the Python 3 `argparse` native library.
+This will all you to use both standard terminal and interface modes to interact with your program.
 
 ```python
 # Import
@@ -45,7 +57,7 @@ args: argparse.Namespace = interface.parseArgs()
 
 See [Demo.py](./argui/Demo.py) for more information.
 
-### Use the Command Line
+### Run Your Program
 
 Your program can now be run in both CLI and GUI modes.
 
@@ -65,6 +77,7 @@ But make note that if you are using a terminal within another program (like VSCo
 
 ## Development Setup
 
+1. Clone this repo and enter the directory with a terminal.
 1. Setup a Python Env: `python -m venv .venv --prompt "argUI"`
 1. Enter the Python Env.
 1. Install requirements: `pip install -r requirements.txt`
