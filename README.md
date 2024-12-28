@@ -1,6 +1,6 @@
 # ArgUI
 
-![ArgUI's Logo](/assets/ArgUILogo_transparent.png)
+![ArgUI's Logo](https://github.com/Sorcerio/Argparse-Interface/blob/master/assets/ArgUILogo_transparent.png?raw=true)
 
 An automatic, terminal based interactive interface for any Python 3 `argparse` command line with keyboard and mouse support.
 
@@ -17,7 +17,7 @@ An automatic, terminal based interactive interface for any Python 3 `argparse` c
 
 ## See It in Action
 
-![Demo of the features in ArgUI](/assets/ArgUIDemo_small.gif)
+![Demo of the features in ArgUI](https://github.com/Sorcerio/Argparse-Interface/blob/master/assets/ArgUIDemo_small.gif?raw=true)
 
 Get a feel for the features of ArgUI using the [Demo.py](./argui/Demo.py) code included in this project.
 
@@ -25,11 +25,9 @@ Get a feel for the features of ArgUI using the [Demo.py](./argui/Demo.py) code i
 
 ### Install as a Dependency
 
-1. Clone this repo to the desired location.
-1. Access this directory with your desired environment.
-1. Install this repo as a package: `pip install -e .`
+The ArgUI package is [available on PyPi](https://pypi.org/project/Argparse-Interface/).
 
-A PyPi release may come in the future.
+It can be installed by calling: `pip install Argparse-Interface`
 
 ### Setup Your Argparse
 
