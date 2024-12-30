@@ -58,6 +58,19 @@ Screen {
             padding: 0 1 1 1;
         }
 
+        .fileSelectContainer {
+            Horizontal {
+                background: $surface-lighten-1;
+                height: auto;
+                content-align: right middle;
+
+                .fileSelectLabel {
+                    width: 2fr;
+                    padding: 1 1 0 1;
+                }
+            }
+        }
+
         .inputLabel {
             padding: 0 1 0 1;
             margin: 1 0 0 0;

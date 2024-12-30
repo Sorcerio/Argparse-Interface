@@ -355,7 +355,7 @@ class Interface(App):
                     yield from self._buildTypedInput(action, inputType="number")
                 elif action.type == Path:
                     # Add a file input
-                    yield from self._buildTypedInput(action, inputType="file") # TODO: Add file select
+                    yield from self._buildFileSelectInput(action)
                 else:
                     # Add a string input
                     yield from self._buildTypedInput(action)
@@ -466,6 +466,30 @@ class Interface(App):
                 value=(action.default or None)
             ),
             classes="inputContainer"
+        )
+
+    def _buildFileSelectInput(self, action: argparse.Action):
+        """
+        Yields an initial interface for a file select input that allows the file select modal to be opened.
+        Also tracks the selected file path.
+
+        action: The `argparse` action to build from.
+        """
+        # Add a file select input
+        yield Vertical(
+            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
+            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
+            Horizontal(
+                Label("No file selected.", id=f"{action.dest}_fileSelectLabel", classes="fileSelectLabel"),
+                Button(
+                    "Select",
+                    id=action.dest,
+                    variant="primary",
+                    classes="fileSelectButton",
+                    tooltip="Select a file from your system.", # TODO: Change text based on type
+                )
+            ),
+            classes="inputContainer fileSelectContainer"
         )
 
     def _buildListInput(self, action: argparse.Action, showAddRemove: bool = True):
