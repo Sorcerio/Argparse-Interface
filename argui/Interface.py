@@ -76,7 +76,7 @@ class Interface(App):
         parser: argparse.ArgumentParser,
         guiFlag: str,
         title: str = "Argparse Interface",
-        subTitle: str = "",
+        subTitle: Optional[str] = None,
         icon: Optional[str] = "⛽"
     ) -> None:
         """
@@ -135,7 +135,7 @@ class Interface(App):
 
         # Set the title
         self.title = self.mainTitle
-        self.sub_title = self._limitString(self.mainSubtitle, 64)
+        self.sub_title = (self._limitString(self.mainSubtitle, 64) if isinstance(self.mainSubtitle, str) else "")
 
         # Install any tabs
         for tabsId, actions in self.__initTabsContent.items():
@@ -789,7 +789,7 @@ class Interface(App):
         """
         exportDOM(self.screen)
 
-    def _limitString(self, s: str, maxChars: int, postfix: str = "..."):
+    def _limitString(self, s: str, maxChars: int, postfix: str = "...") -> str:
         """
         Limits a string to a certain number of characters, adding a postfix if the string is longer than the limit.
         Takes the length of the postfix into account.
@@ -797,7 +797,11 @@ class Interface(App):
         s: The string to limit.
         maxChars: The maximum number of characters the string should have.
         postfix: The postfix to add to the string if it is longer than the limit.
+
+        Returns a string with a length less than or equal to `maxChars`.
         """
+        if not isinstance(s, str):
+            raise ValueError("`s` must be a string.")
         if len(s) <= maxChars:
             return s
         return s[:maxChars - len(postfix) + 1] + postfix
