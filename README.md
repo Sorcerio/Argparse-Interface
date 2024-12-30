@@ -27,7 +27,7 @@ Get a feel for the features of ArgUI using the [Demo.py](./argui/Demo.py) code i
 
 The ArgUI package is [available on PyPi](https://pypi.org/project/Argparse-Interface/).
 
-It can be installed by calling: `pip install Argparse-Interface`
+It can be installed by calling: `pip install argparse-interface`
 
 ### Setup Your Argparse
 

@@ -11,3 +11,4 @@ build/
 dist/
 demo/
 *.psd
+local.txt
