@@ -446,6 +446,24 @@ class Interface(App):
             validators=validators
         )
 
+    def _createFileSelectInput(self, action: argparse.Action) -> Horizontal:
+        """
+        Creates a setup `Horizontal` object containing the interface for a file select input for the given `action`.
+
+        action: The `argparse` action to build from.
+        """
+        return Horizontal(
+            Label("No file selected.", id=f"{action.dest}_fileSelectLabel", classes="fileSelectLabel"),
+            Button(
+                "Select",
+                id=action.dest,
+                variant="primary",
+                classes="fileSelectButton",
+                tooltip="Select a file from your system.", # TODO: Change text based on type
+            ),
+            classes="fileSelectInput"
+        )
+
     def _buildTypedInput(self, action: argparse.Action, inputType: str = "text"):
         """
         Yields a typed text input group for the given `action`.
@@ -479,16 +497,7 @@ class Interface(App):
         yield Vertical(
             Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
             Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
-            Horizontal(
-                Label("No file selected.", id=f"{action.dest}_fileSelectLabel", classes="fileSelectLabel"),
-                Button(
-                    "Select",
-                    id=action.dest,
-                    variant="primary",
-                    classes="fileSelectButton",
-                    tooltip="Select a file from your system.", # TODO: Change text based on type
-                )
-            ),
+            self._createFileSelectInput(action),
             classes="inputContainer fileSelectContainer"
         )
 
@@ -599,32 +608,39 @@ class Interface(App):
         else:
             self._commands[action.dest] = {id: value}
 
-        # Get proper input type
-        if action.type == int:
-            # An int input
-            inputType = "integer"
-        elif action.type == float:
-            # A float input
-            inputType = "number"
+        # Check if a special type
+        if action.type == Path:
+            # File Select input
+            # Create input and children
+            children = [
+                self._createFileSelectInput(action)
+            ]
         else:
-            # A string input
-            inputType = "text"
+            # Standard input
+            # Get proper input type
+            if action.type == int:
+                # An int input
+                inputType = "integer"
+            elif action.type == float:
+                # A float input
+                inputType = "number"
+            else:
+                # A string input
+                inputType = "text"
 
-        # Create input
-        inputField = self._createInput(
-            action,
-            inputType=inputType,
-            name=itemId,
-            classes=self.CLASS_LIST_TEXT,
-            value=value,
-            metavarIndex=metavarIndex
-        )
+            # Create input and children
+            children = [
+                self._createInput(
+                    action,
+                    inputType=inputType,
+                    name=itemId,
+                    classes=self.CLASS_LIST_TEXT,
+                    value=value,
+                    metavarIndex=metavarIndex
+                )
+            ]
 
-        # Prepare the children
-        children = [
-            inputField
-        ]
-
+        # Check if adding the remove button
         if showRemove:
             children.append(Button(
                 "X",

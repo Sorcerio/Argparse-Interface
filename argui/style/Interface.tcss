@@ -59,7 +59,7 @@ Screen {
         }
 
         .fileSelectContainer {
-            Horizontal {
+            .fileSelectInput {
                 background: $surface-lighten-1;
                 height: auto;
                 content-align: right middle;
@@ -119,6 +119,16 @@ Screen {
 
                 .item:first-of-type {
                     margin: 0;
+                }
+
+                .fileSelectInput {
+                    background: $boost-lighten-1;
+                    width: 4fr;
+
+                    .fileSelectLabel {
+                        width: 3fr;
+                        padding: 1 1 0 1;
+                    }
                 }
 
                 Input, Switch, Select {
