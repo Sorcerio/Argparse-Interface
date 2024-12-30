@@ -6,6 +6,7 @@ import re
 import os
 import argparse
 import uuid
+from pathlib import Path
 from typing import Union, Optional, Any, Iterable
 
 from textual import on
@@ -328,16 +329,12 @@ class Interface(App):
             # TODO: Check argparse docs to find any missing deliniations
             if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
                 # Add a switch
-                # Set the inferred value
-                # self._commands[action.dest] = isinstance(action, argparse._StoreTrueAction)
-
-                # Create the switch
                 yield from self._buildSwitchInput(action)
             elif isinstance(action, argparse._SubParsersAction):
                 # Add a subparser group
                 yield from self._buildSubparserGroup(action)
             elif isinstance(action, argparse._StoreAction):
-                # TODO: Add advanced "typed" input types like file select, etc
+                # TODO: Additional advanced "typed" input types
                 # Decide based on expected type and properties
                 if (action.choices is not None):
                     # Add a combo box input
@@ -356,6 +353,9 @@ class Interface(App):
                 elif action.type == float:
                     # Add a float input
                     yield from self._buildTypedInput(action, inputType="number")
+                elif action.type == Path:
+                    # Add a file input
+                    yield from self._buildTypedInput(action, inputType="file") # TODO: Add file select
                 else:
                     # Add a string input
                     yield from self._buildTypedInput(action)
