@@ -17,6 +17,9 @@ class Wrapper:
 
     Use this class to automatically handle the interface.
     """
+    # Constants
+    DEF_TITLE = "Program"
+
     # Constructor
     def __init__(self,
         parser: argparse.ArgumentParser,
@@ -80,8 +83,8 @@ class Wrapper:
         gui = Interface(
             self._parser,
             self.guiFlag,
-            title=self._parser.prog,
-            subTitle=self._parser.description or Interface.SUB_TITLE,
+            title=(self._parser.prog or Interface.TITLE or self.DEF_TITLE),
+            subTitle=(self._parser.description or Interface.SUB_TITLE),
             icon=self._icon
         )
         returnCode: ReturnCodes = gui.run()
