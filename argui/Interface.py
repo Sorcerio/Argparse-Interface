@@ -1018,4 +1018,4 @@ class Interface(App):
         dest = event.button.id
 
         # Push the modal
-        self.push_screen(FileSelectModal(self._commands.get(dest)))
+        self.push_screen(FileSelectModal(self, self._commands.get(dest)))

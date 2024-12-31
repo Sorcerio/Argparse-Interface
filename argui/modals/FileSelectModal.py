@@ -7,10 +7,10 @@ from pathlib import Path
 from typing import Union, Optional
 
 from textual import on
-from textual.app import ComposeResult
-from textual.containers import Vertical, Horizontal, Grid
+from textual.app import App, ComposeResult
+from textual.containers import Vertical, Horizontal
 from textual.screen import ModalScreen
-from textual.widgets import Label, Button, Input, DirectoryTree
+from textual.widgets import Button, Input, DirectoryTree
 
 # MARK: Classes
 class FileSelectModal(ModalScreen):
@@ -31,16 +31,28 @@ class FileSelectModal(ModalScreen):
     ID_SELECT_BTN = "fsModalSelectButton"
 
     # Lifecycle
-    def __init__(self, startPath: Optional[Union[str, Path]]):
+    def __init__(self, app: App, startPath: Optional[Union[str, Path]]):
+        """
+        app: The `App` object that this modal is attached to.
+        startPath: The path to start the modal at.
+        """
         # Super
         super().__init__()
 
-        # Setup paths
+        # Data
+        self._app = app
+
+        # Setup start path
         if startPath is None:
             self._startPath = Path.home().resolve()
         else:
-            self._startPath = Path(startPath)
+            self._startPath = Path(startPath).resolve()
 
+        # Make sure the start path is a directory
+        if not self._startPath.is_dir():
+            self._startPath = self._startPath.parent.resolve()
+
+        # Set the current path
         self.__curPath = self._startPath
 
         # Declare ui elements
@@ -94,13 +106,24 @@ class FileSelectModal(ModalScreen):
         )
 
     # Functions
-    def goToPath(self, path: Union[str, Path]) -> None:
+    def goToPathOrFail(self, path: Union[str, Path]) -> None:
         """
-        Navigates to the given path.
-        If the path is a directory, it will enter the directory.
+        Navigates to the given `path` or throws a `FileNotFoundError` if the `path` does not exist.
+        If the `path` is a directory, it will enter the directory.
+
+        Use `goToPath(...)` to do nothing if the path does not exist.
+
+        path: A path to navigate to. File or directory.
         """
+        # Get the proposed path
+        path = Path(path).resolve()
+
+        # Check if the path is valid
+        if not path.exists():
+            raise FileNotFoundError(f"Path does not exist: {path}")
+
         # Update the current path
-        self.__curPath = Path(path).resolve()
+        self.__curPath = path
 
         # Check if the path is a directory
         if self.__curPath.is_dir():
@@ -109,6 +132,20 @@ class FileSelectModal(ModalScreen):
 
         # Update the path input
         self._pathInput.value = str(self.__curPath)
+
+    def goToPath(self, path: Union[str, Path]) -> None:
+        """
+        Navigates to the given `path` if it exists or does nothing.
+        If the `path` is a directory, it will enter the directory.
+
+        Use `goToPathOrFail(...)` to throw an error if the path does not exist.
+
+        path: A path to navigate to. File or directory.
+        """
+        try:
+            self.goToPathOrFail(path)
+        except FileNotFoundError:
+            pass
 
     # Handlers
     @on(Button.Pressed, f"#{ID_UP_DIR_BTN}")
@@ -124,7 +161,14 @@ class FileSelectModal(ModalScreen):
         """
         Triggered when the up directory button is pressed.
         """
-        pass # TODO: Implement
+        # Go to it or fail
+        try:
+            self.goToPathOrFail(self._pathInput.value)
+        except FileNotFoundError:
+            self.app.notify(
+                f"Path does not exist: {self._pathInput.value}",
+                severity="warning"
+            )
 
     @on(Button.Pressed, f"#{ID_CANCEL_BTN}")
     def cancelButtonPressed(self, event: Button.Pressed) -> None:
