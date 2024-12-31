@@ -44,13 +44,13 @@ class FileSelectModal(ModalScreen):
 
         # Setup start path
         if startPath is None:
-            self._startPath = Path.home().resolve()
+            self._startPath = self.fullpath(Path.home())
         else:
-            self._startPath = Path(startPath).resolve()
+            self._startPath = self.fullpath(startPath)
 
         # Make sure the start path is a directory
         if not self._startPath.is_dir():
-            self._startPath = self._startPath.parent.resolve()
+            self._startPath = self.fullpath(self._startPath.parent)
 
         # Set the current path
         self.__curPath = self._startPath
@@ -68,7 +68,7 @@ class FileSelectModal(ModalScreen):
 
         # Prepare the path input
         self._pathInput = Input( # TODO: Add file path validator?
-            value=str(self._startPath.resolve()),
+            value=str(self.fullpath(self._startPath)),
             placeholder="~/foo/bar",
             id=self.ID_PATH_INPUT
         )
@@ -106,46 +106,32 @@ class FileSelectModal(ModalScreen):
         )
 
     # Functions
-    def goToPathOrFail(self, path: Union[str, Path]) -> None:
+    def fullpath(self, path: Union[str, Path]) -> Path:
         """
-        Navigates to the given `path` or throws a `FileNotFoundError` if the `path` does not exist.
-        If the `path` is a directory, it will enter the directory.
+        Returns the true full path of the given `path`.
+        """
+        return Path(path).expanduser().resolve()
 
-        Use `goToPath(...)` to do nothing if the path does not exist.
+    def goToPath(self, path: Union[str, Path]) -> None:
+        """
+        Navigates to the given `path`.
+        If the `path` is a directory, it will enter the directory.
 
         path: A path to navigate to. File or directory.
         """
-        # Get the proposed path
-        path = Path(path).resolve()
-
-        # Check if the path is valid
-        if not path.exists():
-            raise FileNotFoundError(f"Path does not exist: {path}")
-
         # Update the current path
-        self.__curPath = path
+        self.__curPath = self.fullpath(path)
 
         # Check if the path is a directory
         if self.__curPath.is_dir():
             # Enter the directory
             self._dirTree.path = str(self.__curPath)
+        elif self.__curPath.is_file():
+            # Enter the parent directory
+            self._dirTree.path = str(self.fullpath(self.__curPath.parent))
 
         # Update the path input
         self._pathInput.value = str(self.__curPath)
-
-    def goToPath(self, path: Union[str, Path]) -> None:
-        """
-        Navigates to the given `path` if it exists or does nothing.
-        If the `path` is a directory, it will enter the directory.
-
-        Use `goToPathOrFail(...)` to throw an error if the path does not exist.
-
-        path: A path to navigate to. File or directory.
-        """
-        try:
-            self.goToPathOrFail(path)
-        except FileNotFoundError:
-            pass
 
     # Handlers
     @on(Button.Pressed, f"#{ID_UP_DIR_BTN}")
@@ -153,22 +139,24 @@ class FileSelectModal(ModalScreen):
         """
         Triggered when the up directory button is pressed.
         """
+        # Get the previous directory
+        if self.__curPath.is_file():
+            # Go up to the current dir and up one dir
+            upPath = self.__curPath.parent.parent
+        else:
+            # Go up one directory
+            upPath = self.__curPath.parent
+
         # Go to it
-        self.goToPath(self.__curPath.parent)
+        self.goToPath(upPath)
 
     @on(Button.Pressed, f"#{ID_GO_PATH_BTN}")
     def pathGoButtonPressed(self, event: Button.Pressed) -> None:
         """
         Triggered when the up directory button is pressed.
         """
-        # Go to it or fail
-        try:
-            self.goToPathOrFail(self._pathInput.value)
-        except FileNotFoundError:
-            self.app.notify(
-                f"Path does not exist: {self._pathInput.value}",
-                severity="warning"
-            )
+        # Go to it
+        self.goToPath(self._pathInput.value)
 
     @on(Button.Pressed, f"#{ID_CANCEL_BTN}")
     def cancelButtonPressed(self, event: Button.Pressed) -> None:
