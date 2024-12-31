@@ -14,7 +14,7 @@ from textual.app import App, SystemCommand, ComposeResult
 from textual.binding import Binding
 from textual.validation import Number
 from textual.containers import Vertical, Horizontal
-from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input, Button, Tree
+from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input, Button, Tree, Link
 
 from .Logging import getLogger
 from .ParserMap import ParserMap
@@ -455,7 +455,12 @@ class Interface(App):
         action: The `argparse` action to build from.
         """
         return Horizontal(
-            Label("No file selected.", id=f"{action.dest}_fileSelectLabel", classes="fileSelectLabel"),
+            Link(
+                "No file selected.",
+                url="",
+                id=f"{action.dest}_fileSelectLabel",
+                classes="fileSelectLabel"
+            ),
             Button(
                 "Select",
                 id=action.dest,
@@ -831,7 +836,12 @@ class Interface(App):
         """
         exportDOM(self.screen)
 
-    def _limitString(self, s: str, maxChars: int, postfix: str = "...") -> str:
+    def _limitString(self,
+        s: str,
+        maxChars: int,
+        postfix: str = "...",
+        trimRight: bool = True
+    ) -> str:
         """
         Limits a string to a certain number of characters, adding a postfix if the string is longer than the limit.
         Takes the length of the postfix into account.
@@ -839,14 +849,25 @@ class Interface(App):
         s: The string to limit.
         maxChars: The maximum number of characters the string should have.
         postfix: The postfix to add to the string if it is longer than the limit.
+        trimRight: If `True`, the postfix will be added to the right side of the string like "Hello...". If `False`, the postfix will be added to the left side of the string like "...World".
 
         Returns a string with a length less than or equal to `maxChars`.
         """
+        # Check if it's even a string
         if not isinstance(s, str):
             raise ValueError("`s` must be a string.")
+
+        # Check if it's within range
         if len(s) <= maxChars:
             return s
-        return s[:maxChars - len(postfix) + 1] + postfix
+
+        # Check the side to cut
+        if trimRight:
+            # Trim the right side
+            return s[:maxChars - len(postfix) + 1] + postfix
+        else:
+            # Trim the left side
+            return postfix + s[-(maxChars - len(postfix) + 1):]
 
     # MARK: Actions
     def action_onQuit(self):
@@ -1029,9 +1050,11 @@ class Interface(App):
                 self._commands[dest] = path
 
                 # Update the label
-                label: Label = self.query_one(f"#{dest}_fileSelectLabel") # TODO: Constants for all ids and classes!
-                if label:
-                    label.update(str(path))
+                linkLabel: Link = self.query_one(f"#{dest}_fileSelectLabel") # TODO: Constants for all ids and classes!
+                if linkLabel:
+                    linkLabel.update(self._limitString(str(path), 42, trimRight=False))
+                    linkLabel.tooltip = str(path)
+                    linkLabel.url = path
 
         # Push the modal
         self.push_screen(
