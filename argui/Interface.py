@@ -1017,5 +1017,27 @@ class Interface(App):
         # Get the target
         dest = event.button.id
 
+        # Create the file select return handler
+        def fileSelectDone(path: Optional[Path]):
+            """
+            path: A `Path` object or `None` if the user cancelled.
+            """
+            # Check if a path was selected
+            # TODO: Make this work with list based versions
+            if isinstance(path, Path):
+                # Update the command
+                self._commands[dest] = path
+
+                # Update the label
+                label: Label = self.query_one(f"#{dest}_fileSelectLabel") # TODO: Constants for all ids and classes!
+                if label:
+                    label.update(str(path))
+
         # Push the modal
-        self.push_screen(FileSelectModal(self, self._commands.get(dest)))
+        self.push_screen(
+            FileSelectModal(
+                self,
+                self._commands.get(dest)
+            ),
+            callback=fileSelectDone
+        )

@@ -13,7 +13,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Input, DirectoryTree
 
 # MARK: Classes
-class FileSelectModal(ModalScreen):
+class FileSelectModal(ModalScreen[Optional[Path]]):
     """
     A modal allowing the user to select a file or directory from the file system.
     """
@@ -112,12 +112,13 @@ class FileSelectModal(ModalScreen):
         """
         return Path(path).expanduser().resolve()
 
-    def goToPath(self, path: Union[str, Path]) -> None:
+    def goToPath(self, path: Union[str, Path], refreshForFile: bool = False) -> None:
         """
         Navigates to the given `path`.
         If the `path` is a directory, it will enter the directory.
 
         path: A path to navigate to. File or directory.
+        refreshForFile: If `True`, the directory tree will refresh it's content based on the directory the file is in. Otherwise, only the directory tree itself won't be changed.
         """
         # Update the current path
         self.__curPath = self.fullpath(path)
@@ -126,7 +127,7 @@ class FileSelectModal(ModalScreen):
         if self.__curPath.is_dir():
             # Enter the directory
             self._dirTree.path = str(self.__curPath)
-        elif self.__curPath.is_file():
+        elif (refreshForFile and self.__curPath.is_file()):
             # Enter the parent directory
             self._dirTree.path = str(self.fullpath(self.__curPath.parent))
 
@@ -156,22 +157,23 @@ class FileSelectModal(ModalScreen):
         Triggered when the up directory button is pressed.
         """
         # Go to it
-        self.goToPath(self._pathInput.value)
+        self.goToPath(self._pathInput.value, refreshForFile=True)
 
     @on(Button.Pressed, f"#{ID_CANCEL_BTN}")
     def cancelButtonPressed(self, event: Button.Pressed) -> None:
         """
         Triggered when the up directory button is pressed.
         """
-        # Dismiss the modal
-        self.dismiss(event)
+        # Dismiss the modal with nothing
+        self.dismiss(None)
 
     @on(Button.Pressed, f"#{ID_SELECT_BTN}")
     def pathSelectButtonPressed(self, event: Button.Pressed) -> None:
         """
         Triggered when the up directory button is pressed.
         """
-        pass # TODO: Implement
+        # Dismiss the modal with the selected path
+        self.dismiss(self.fullpath(self.__curPath))
 
     @on(DirectoryTree.FileSelected, f"#{ID_FILE_TREE}")
     def dirTreeFileSelected(self, event: DirectoryTree.FileSelected) -> None:
