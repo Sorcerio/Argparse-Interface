@@ -22,6 +22,7 @@ from .ParserGroup import ParserGroup
 from .modals.QuitModal import QuitModal
 from .modals.SubmitModal import SubmitModal
 from .modals.SubmitErrorModal import SubmitErrorModal
+from .modals.FileSelectModal import FileSelectModal
 from .debug.ExportDOM import exportDOM
 
 # MARK: Classes
@@ -50,6 +51,7 @@ class Interface(App):
     CLASS_EXCLUSIVE_TAB_BOX = "exclusiveContainer"
     CLASS_NAV_SECTION = "navSection"
     CLASS_NAV_INPUT = "navInput"
+    CLASS_FILESELECT_OPEN_BTN = "fileSelectButton"
 
     BINDINGS = {
         Binding(
@@ -458,7 +460,7 @@ class Interface(App):
                 "Select",
                 id=action.dest,
                 variant="primary",
-                classes="fileSelectButton",
+                classes=self.CLASS_FILESELECT_OPEN_BTN,
                 tooltip="Select a file from your system.", # TODO: Change text based on type
             ),
             classes="fileSelectInput"
@@ -1006,3 +1008,14 @@ class Interface(App):
                 scrollArea = self.query_one(f"#{self.ID_CONTENT_AREA}")
                 if target and scrollArea:
                     scrollArea.scroll_to_widget(target)
+
+    @on(Button.Pressed, f".{CLASS_FILESELECT_OPEN_BTN}")
+    def fileSelectOpenButtonPressed(self, event: Button.Pressed) -> None:
+        """
+        Triggered when a file select's "open" button is pressed to open the file select modal.
+        """
+        # Get the target
+        dest = event.button.id
+
+        # Push the modal
+        self.push_screen(FileSelectModal(self._commands.get(dest)))
