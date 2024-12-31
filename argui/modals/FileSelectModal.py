@@ -31,15 +31,17 @@ class FileSelectModal(ModalScreen):
     ID_SELECT_BTN = "fsModalSelectButton"
 
     # Lifecycle
-    def __init__(self, rootPath: Optional[Union[str, Path]]):
+    def __init__(self, startPath: Optional[Union[str, Path]]):
         # Super
         super().__init__()
 
-        # Setup root path
-        if rootPath is None:
-            self._rootPath = Path.home()
+        # Setup paths
+        if startPath is None:
+            self._startPath = Path.home().resolve()
         else:
-            self._rootPath = Path(rootPath)
+            self._startPath = Path(startPath)
+
+        self.__curPath = self._startPath
 
         # Declare Dir Tree
         self._dirTree: Optional[DirectoryTree] = None # Set in `compose`
@@ -47,7 +49,7 @@ class FileSelectModal(ModalScreen):
     def compose(self) -> ComposeResult:
         # Prepare the dir tree
         self._dirTree = DirectoryTree(
-            self._rootPath,
+            self._startPath,
             id=self.ID_FILE_TREE
         )
 
@@ -59,7 +61,7 @@ class FileSelectModal(ModalScreen):
                 #     id=self.ID_UP_DIR_BTN
                 # ),
                 Input( # TODO: Add file path validator?
-                    value=str(self._rootPath.absolute()),
+                    value=str(self._startPath.resolve()),
                     placeholder="~/foo/bar",
                     id=self.ID_PATH_INPUT
                 ),
@@ -130,7 +132,8 @@ class FileSelectModal(ModalScreen):
         """
         Triggered when a directory is selected in the directory tree.
         """
-        print(event)
-        print("DIR ID", event.node.id)
+        # Get the new path
+        self.__curPath = event.path.resolve()
 
-        
+        # Enter the directory
+        self._dirTree.path = str(self.__curPath)
