@@ -43,14 +43,22 @@ class FileSelectModal(ModalScreen):
 
         self.__curPath = self._startPath
 
-        # Declare Dir Tree
+        # Declare ui elements
         self._dirTree: Optional[DirectoryTree] = None # Set in `compose`
+        self._pathInput: Optional[Input] = None # Set in `compose`
 
     def compose(self) -> ComposeResult:
         # Prepare the dir tree
         self._dirTree = DirectoryTree(
             self._startPath,
             id=self.ID_FILE_TREE
+        )
+
+        # Prepare the path input
+        self._pathInput = Input( # TODO: Add file path validator?
+            value=str(self._startPath.resolve()),
+            placeholder="~/foo/bar",
+            id=self.ID_PATH_INPUT
         )
 
         # Yield it
@@ -60,11 +68,7 @@ class FileSelectModal(ModalScreen):
                 #     "Up",
                 #     id=self.ID_UP_DIR_BTN
                 # ),
-                Input( # TODO: Add file path validator?
-                    value=str(self._startPath.resolve()),
-                    placeholder="~/foo/bar",
-                    id=self.ID_PATH_INPUT
-                ),
+                self._pathInput,
                 Button(
                     "Go",
                     variant="primary",
@@ -124,8 +128,11 @@ class FileSelectModal(ModalScreen):
         """
         Triggered when a file is selected in the directory tree.
         """
-        print(event)
-        print("FILE ID", event.node.id)
+        # Get the new path
+        self.__curPath = event.path.resolve()
+
+        # Update the path input
+        self._pathInput.value = str(self.__curPath)
 
     @on(DirectoryTree.DirectorySelected, f"#{ID_FILE_TREE}")
     def dirTreeDirSelected(self, event: DirectoryTree.DirectorySelected) -> None:
@@ -137,3 +144,6 @@ class FileSelectModal(ModalScreen):
 
         # Enter the directory
         self._dirTree.path = str(self.__curPath)
+
+        # Update the path input
+        self._pathInput.value = str(self.__curPath)
