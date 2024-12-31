@@ -21,9 +21,12 @@ class FileSelectModal(ModalScreen):
     CSS_PATH = os.path.join(os.path.dirname(__file__), "..", "style", "FileSelectModal.tcss")
 
     ID_FILE_SELECT_ROOT = "fsModal"
+    ID_PATH_BAR = "fsModalPathBar"
     ID_UP_DIR_BTN = "fsModalUpButton"
-    ID_GO_PATH_BTN = "fsModalGoButton"
     ID_PATH_INPUT = "fsModalPathInput"
+    ID_GO_PATH_BTN = "fsModalGoButton"
+    ID_FILE_TREE = "fsModalFileTree"
+    ID_ACTIONS_BAR = "fsModalActionsBar"
     ID_CANCEL_BTN = "fsModalCancelButton"
     ID_SELECT_BTN = "fsModalSelectButton"
 
@@ -34,36 +37,52 @@ class FileSelectModal(ModalScreen):
 
         # Setup root path
         if rootPath is None:
-            self._rootPath = os.getcwd()
+            self._rootPath = Path.home()
         else:
             self._rootPath = Path(rootPath)
 
+        # Declare Dir Tree
+        self._dirTree: Optional[DirectoryTree] = None # Set in `compose`
+
     def compose(self) -> ComposeResult:
+        # Prepare the dir tree
+        self._dirTree = DirectoryTree(
+            self._rootPath,
+            id=self.ID_FILE_TREE
+        )
+
+        # Yield it
         yield Vertical(
             Horizontal(
-                Button(
-                    "^",
-                    id=self.ID_UP_DIR_BTN
-                ),
+                # Button(
+                #     "Up",
+                #     id=self.ID_UP_DIR_BTN
+                # ),
                 Input( # TODO: Add file path validator?
+                    value=str(self._rootPath.absolute()),
                     placeholder="~/foo/bar",
                     id=self.ID_PATH_INPUT
                 ),
                 Button(
-                    ">",
+                    "Go",
+                    variant="primary",
                     id=self.ID_GO_PATH_BTN
-                )
+                ),
+                id=self.ID_PATH_BAR
             ),
-            DirectoryTree(self._rootPath),
+            self._dirTree,
             Horizontal(
                 Button(
                     "Cancel",
+                    variant="error",
                     id=self.ID_CANCEL_BTN
                 ),
                 Button(
                     "Select",
+                    variant="success",
                     id=self.ID_SELECT_BTN
-                )
+                ),
+                id=self.ID_ACTIONS_BAR
             ),
             id=self.ID_FILE_SELECT_ROOT
         )
@@ -97,3 +116,21 @@ class FileSelectModal(ModalScreen):
         Triggered when the up directory button is pressed.
         """
         pass # TODO: Implement
+
+    @on(DirectoryTree.FileSelected, f"#{ID_FILE_TREE}")
+    def dirTreeFileSelected(self, event: DirectoryTree.FileSelected) -> None:
+        """
+        Triggered when a file is selected in the directory tree.
+        """
+        print(event)
+        print("FILE ID", event.node.id)
+
+    @on(DirectoryTree.DirectorySelected, f"#{ID_FILE_TREE}")
+    def dirTreeDirSelected(self, event: DirectoryTree.DirectorySelected) -> None:
+        """
+        Triggered when a directory is selected in the directory tree.
+        """
+        print(event)
+        print("DIR ID", event.node.id)
+
+        

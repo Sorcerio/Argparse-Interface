@@ -1,1 +1,44 @@
-# TODO: style
+FileSelectModal {
+    align: center middle;
+}
+
+#fsModal {
+    background: $surface;
+    width: 90%;
+    height: 70%;
+    border: thick $background 80%;
+    padding: 0 1 0 1;
+
+    #fsModalPathBar {
+        height: 3;
+        width: 100%;
+
+        #fsModalUpButton {
+            width: 1fr;
+        }
+
+        #fsModalPathInput {
+            width: 4fr;
+        }
+
+        #fsModalGoButton {
+            width: 1fr;
+        }
+    }
+
+    DirectoryTree {
+        background: $surface-lighten-1;
+        padding: 0 1 0 1;
+        margin: 1 0 1 0;
+    }
+
+    #fsModalActionsBar {
+        height: 3;
+        width: 100%;
+        content-align: right middle;
+
+        Button {
+            width: 50%;
+        }
+    }
+}
