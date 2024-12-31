@@ -64,10 +64,10 @@ class FileSelectModal(ModalScreen):
         # Yield it
         yield Vertical(
             Horizontal(
-                # Button(
-                #     "Up",
-                #     id=self.ID_UP_DIR_BTN
-                # ),
+                Button(
+                    "Back",
+                    id=self.ID_UP_DIR_BTN
+                ),
                 self._pathInput,
                 Button(
                     "Go",
@@ -93,16 +93,34 @@ class FileSelectModal(ModalScreen):
             id=self.ID_FILE_SELECT_ROOT
         )
 
+    # Functions
+    def goToPath(self, path: Union[str, Path]) -> None:
+        """
+        Navigates to the given path.
+        If the path is a directory, it will enter the directory.
+        """
+        # Update the current path
+        self.__curPath = Path(path).resolve()
+
+        # Check if the path is a directory
+        if self.__curPath.is_dir():
+            # Enter the directory
+            self._dirTree.path = str(self.__curPath)
+
+        # Update the path input
+        self._pathInput.value = str(self.__curPath)
+
     # Handlers
     @on(Button.Pressed, f"#{ID_UP_DIR_BTN}")
     def dirUpButtonPressed(self, event: Button.Pressed) -> None:
         """
         Triggered when the up directory button is pressed.
         """
-        pass # TODO: Implement
+        # Go to it
+        self.goToPath(self.__curPath.parent)
 
     @on(Button.Pressed, f"#{ID_GO_PATH_BTN}")
-    def dirUpButtonPressed(self, event: Button.Pressed) -> None:
+    def pathGoButtonPressed(self, event: Button.Pressed) -> None:
         """
         Triggered when the up directory button is pressed.
         """
@@ -128,22 +146,13 @@ class FileSelectModal(ModalScreen):
         """
         Triggered when a file is selected in the directory tree.
         """
-        # Get the new path
-        self.__curPath = event.path.resolve()
-
-        # Update the path input
-        self._pathInput.value = str(self.__curPath)
+        # Go to it
+        self.goToPath(event.path)
 
     @on(DirectoryTree.DirectorySelected, f"#{ID_FILE_TREE}")
     def dirTreeDirSelected(self, event: DirectoryTree.DirectorySelected) -> None:
         """
         Triggered when a directory is selected in the directory tree.
         """
-        # Get the new path
-        self.__curPath = event.path.resolve()
-
-        # Enter the directory
-        self._dirTree.path = str(self.__curPath)
-
-        # Update the path input
-        self._pathInput.value = str(self.__curPath)
+        # Go to it
+        self.goToPath(event.path)
