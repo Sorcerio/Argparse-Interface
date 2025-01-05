@@ -24,7 +24,7 @@ from .modals.QuitModal import QuitModal
 from .modals.SubmitModal import SubmitModal
 from .modals.SubmitErrorModal import SubmitErrorModal
 from .modals.FileSelectModal import FileSelectModal
-from .widgets import InputBuilders
+from .widgets import InputBuilders, InputList
 from .debug.ExportDOM import exportDOM
 
 # TODO: Break down this file into smaller components
@@ -45,9 +45,6 @@ class Interface(App):
     ID_NAV_TREE = "navTree"
     ID_CONTENT_AREA = "contentArea"
 
-    CLASS_LIST_RM_BTN = "listRemoveButton"
-    CLASS_LIST_ADD_BTN = "listAddButton"
-    CLASS_LIST_TEXT = "listInput"
     CLASS_SUBPARSER_TAB_BOX = "subparserContainer"
     CLASS_EXCLUSIVE_TAB_BOX = "exclusiveContainer"
     CLASS_NAV_SECTION = "navSection"
@@ -345,9 +342,10 @@ class Interface(App):
                       (action.nargs == argparse.ZERO_OR_MORE) or
                       (isinstance(action.nargs, int) and (action.nargs > 1))):
                     # Add a list input
-                    yield from self._buildListInput(
+                    yield InputList(
                         action,
-                        showAddRemove=(not (isinstance(action.nargs, int) and (action.nargs > 1)))
+                        (not (isinstance(action.nargs, int) and (action.nargs > 1))),
+                        defaults=self._commands.get(action.dest, [])
                     )
                 elif action.type == int:
                     # Add an int input
@@ -364,162 +362,6 @@ class Interface(App):
             else:
                 # Report
                 self.log(warn=f"Unknown action type: {action}")
-
-    def _buildListInput(self, action: argparse.Action, showAddRemove: bool = True):
-        """
-        Yields a list input for the given `action`.
-
-        action: The `argparse` action to build from.
-        showAddRemove: If `True`, the add and remove buttons will be shown with a max count defined by `action.nargs`.
-        """
-        # Prepare item list
-        items: dict[str, Any] = {}
-
-        # Add default values if present
-        if isinstance(self._commands[action.dest], list):
-            # Process the default values
-            cmdUpdate = {}
-            for i, val in enumerate(self._commands[action.dest]):
-                # Get item id
-                itemId = str(uuid.uuid4())
-
-                # Add the UI item to items
-                items[itemId] = self._buildListInputItem(
-                    itemId,
-                    action,
-                    value=val,
-                    showRemove=showAddRemove,
-                    metavarIndex=i
-                )
-
-                # Add to command update
-                cmdUpdate[itemId] = val
-
-            # Update the command
-            self._commands[action.dest] = cmdUpdate
-
-        # Add remaining inputs for nargs
-        itemCount = len(items)
-        if isinstance(action.nargs, int) and (itemCount < action.nargs):
-            for i in range(itemCount, (action.nargs - itemCount)):
-                # Get item id
-                itemId = str(uuid.uuid4())
-
-                # Add the UI item to items
-                items[itemId] = self._buildListInputItem(
-                    itemId,
-                    action,
-                    showRemove=showAddRemove,
-                    metavarIndex=i
-                )
-
-        # Prepare the id for this list
-        listId = action.dest
-
-        # Create record of the list items
-        self._listsData[listId] = (action, items)
-
-        # Prepare the children
-        children = [
-            Label(Utils.codeStrToTitle(action.dest), classes="inputLabel"),
-            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
-            Vertical(
-                *items.values(),
-                id=listId,
-                classes="listInputItemBox"
-            )
-        ]
-
-        if showAddRemove:
-            children.append(Button(
-                "Add +",
-                id=f"{listId}_add",
-                name=listId,
-                variant="primary",
-                classes=f"{self.CLASS_LIST_ADD_BTN}",
-                tooltip=f"Add a new item to {Utils.codeStrToTitle(action.dest)}",
-                disabled=((len(items) >= action.nargs) if isinstance(action.nargs, int) else False)
-            ))
-
-        # Add a list input
-        yield Vertical(
-            *children,
-            classes="listInputContainer"
-        )
-
-    def _buildListInputItem(self,
-        id: str,
-        action: argparse.Action,
-        value: Optional[str] = None,
-        showRemove: bool = True,
-        metavarIndex: Optional[int] = None
-    ):
-        """
-        Yields a list input item for the given `action`.
-
-        id: The identifier for this list item.
-        action: The `argparse` action to build from.
-        value: The initial value for this list item.
-        showRemove: If `True`, the remove button will be shown for this list item.
-        metavarIndex: The index of the `action.metavar` to use for the placeholder when the `action.metavar` is a tuple.
-        """
-        # Prepare the id for this list item
-        itemId = f"{action.dest}_{id}"
-
-        # Update the command data
-        if isinstance(self._commands[action.dest], dict):
-            self._commands[action.dest][id] = value
-        else:
-            self._commands[action.dest] = {id: value}
-
-        # Check if a special type
-        if action.type == Path:
-            # File Select input
-            # Create input and children
-            children = [
-                InputBuilders.createFileSelectInput(action)
-            ]
-        else:
-            # Standard input
-            # Get proper input type
-            if action.type == int:
-                # An int input
-                inputType = "integer"
-            elif action.type == float:
-                # A float input
-                inputType = "number"
-            else:
-                # A string input
-                inputType = "text"
-
-            # Create input and children
-            children = [
-                InputBuilders.createInput(
-                    action,
-                    inputType=inputType,
-                    name=itemId,
-                    classes=self.CLASS_LIST_TEXT,
-                    value=value,
-                    metavarIndex=metavarIndex
-                )
-            ]
-
-        # Check if adding the remove button
-        if showRemove:
-            children.append(Button(
-                "X",
-                name=itemId,
-                classes=f"{self.CLASS_LIST_RM_BTN}",
-                variant="error",
-                tooltip=f"Remove item"
-            ))
-
-        # Add a list input item
-        return Horizontal(
-            *children,
-            id=itemId,
-            classes="item"
-        )
 
     def _buildSubparserGroup(self, action: argparse.Action):
         """
@@ -707,73 +549,76 @@ class Interface(App):
         self._commands[event.input.id] = val
         self.log(debug=f"Text changed: {event.input.id} -> {val} ({type(val)})")
 
-    @on(Input.Changed, f".{CLASS_LIST_TEXT}")
+    @on(Input.Changed, f".{InputList.CLASS_LIST_INPUT_TEXT}")
     def inputTypedInListChanged(self, event: Input.Changed) -> None:
         """
         Triggered when a typed text input *within a list* is changed.
         """
-        # Get the target
-        dest, id = event.input.name.split("_")
+        # TODO: Fix
+        # # Get the target
+        # dest, id = event.input.name.split("_")
 
-        # Get appropriate value type
-        val = Utils.typedStringToValue(event.value, event.input.type) # TODO: Should make it so that list/non-list is agnostic
+        # # Get appropriate value type
+        # val = Utils.typedStringToValue(event.value, event.input.type) # TODO: Should make it so that list/non-list is agnostic
 
-        # Update the command
-        self._commands[dest][id] = val
+        # # Update the command
+        # self._commands[dest][id] = val
 
-        # Report
-        self.log(debug=f"List based text changed: {event.input.id} -> {val} ({type(val)})")
+        # # Report
+        # self.log(debug=f"List based text changed: {event.input.id} -> {val} ({type(val)})")
 
-    @on(Button.Pressed, f".{CLASS_LIST_ADD_BTN}")
+    @on(Button.Pressed, f".{InputList.CLASS_LIST_ADD_BTN}")
     def listAddButtonPressed(self, event: Button.Pressed) -> None:
         """
         Triggered when a list add button is pressed.
         """
-        # Unpack the data
-        action, listItems = self._listsData[event.button.name]
+        # TODO: Fix
+        # # Unpack the data
+        # action, listItems = self._listsData[event.button.name]
 
-        # Get the uuid for this button
-        buttonId = str(uuid.uuid4())
+        # # Get the uuid for this button
+        # buttonId = str(uuid.uuid4())
 
-        # Create the list item
-        listItem = self._buildListInputItem(
-            buttonId,
-            action
-        )
+        # # Create the list item
+        # listItem = self._buildListInputItem(
+        #     buttonId,
+        #     action
+        # )
 
-        # Update the lists data
-        listItems[buttonId] = listItem
+        # # Update the lists data
+        # listItems[buttonId] = listItem
 
-        # Add a new item to the ui
-        self.get_widget_by_id(event.button.name).mount(listItem)
+        # # Add a new item to the ui
+        # self.get_widget_by_id(event.button.name).mount(listItem)
 
-        # Check if the list is full
-        if isinstance(action.nargs, int) and (len(listItems) >= action.nargs):
-            event.button.disabled = True
-            return
+        # # Check if the list is full
+        # if isinstance(action.nargs, int) and (len(listItems) >= action.nargs):
+        #     event.button.disabled = True
+        #     return
 
-    @on(Button.Pressed, f".{CLASS_LIST_RM_BTN}")
+    @on(Button.Pressed, f".{InputList.CLASS_LIST_RM_BTN}")
     def listRemoveButtonPressed(self, event: Button.Pressed) -> None:
         """
         Triggered when a list remove button is pressed.
         """
-        # Get the target
-        dest, listId = event.button.name.split("_")
-        action, listItems = self._listsData[dest]
+        # TODO: Fix
+        # # Get the target
+        # dest, listId = event.button.name.split("_")
+        # action, listItems = self._listsData[dest]
 
-        # Remove from the command
-        _ = self._commands[dest].pop(listId)
+        # # Remove from the command
+        # _ = self._commands[dest].pop(listId)
 
-        # Remove from the list data
-        del listItems[listId]
+        # # Remove from the list data
+        # del listItems[listId]
 
-        # Remove from the UI
-        self.get_widget_by_id(event.button.name).remove()
+        # # Remove from the UI
+        # self.get_widget_by_id(event.button.name).remove()
 
-        # Check if list is no longer full
-        if isinstance(action.nargs, int) and (len(listItems) < action.nargs):
-            if addBtn := self.get_widget_by_id(f"{dest}_add"):
-                addBtn.disabled = False
+        # # Check if list is no longer full
+        # if isinstance(action.nargs, int) and (len(listItems) < action.nargs):
+        #     if addBtn := self.get_widget_by_id(f"{dest}_add"):
+        #         addBtn.disabled = False
 
     @on(TabbedContent.TabActivated, f".{CLASS_SUBPARSER_TAB_BOX}")
     def tabActivated(self, event: TabbedContent.TabActivated) -> None:
