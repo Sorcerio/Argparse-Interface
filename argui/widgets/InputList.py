@@ -7,9 +7,12 @@ import argparse
 from pathlib import Path
 from typing import Optional, Any
 
+from textual import on
+from textual.dom import DOMNode
 from textual.widget import Widget
 from textual.widgets import Label, Button
 from textual.containers import Vertical, Horizontal
+from textual.message import Message
 
 from . import InputBuilders
 from .. import Utils
@@ -19,7 +22,7 @@ class InputList(Widget):
     """
     A widget for rendering and managing a list of input fields for an Action.
     """
-    # Constants
+    # MARK: Constants
     CLASS_LIST_INPUT_CONTAINER = "listInputContainer"
     CLASS_LIST_INPUT_BOX = "listInputItemBox"
     CLASS_LIST_RM_BTN = "listRemoveButton"
@@ -33,13 +36,22 @@ class InputList(Widget):
     }
     """
 
-    # Lifecycle
+    # MARK: Lifecycle
     def __init__(self,
         action: argparse.Action,
         showAddRemove: bool,
-        defaults: Optional[list[Any]] = None
+        defaults: Optional[list[Any]] = None,
+        name: Optional[str] = None,
+        id: Optional[str] = None,
+        classes: Optional[str] = None,
+        disabled: bool = False,
     ) -> None:
-        super().__init__()
+        super().__init__(
+            name=name,
+            id=id,
+            classes=classes,
+            disabled=disabled
+        )
 
         self.showAddRemove = showAddRemove
         self._action = action
@@ -47,7 +59,7 @@ class InputList(Widget):
         self._inputs: dict[str, Widget] = {} # { inputId: item }
         self._values: dict[str, Any] = {} # { inputId: value }
 
-        self._prepareItems()
+        self._prepareInputs()
 
     def compose(self):
         # Prep the core elements
@@ -79,9 +91,45 @@ class InputList(Widget):
             classes=self.CLASS_LIST_INPUT_CONTAINER
         )
 
-        print(self._action.dest, self._inputs)
+    # MARK: Events
+    class InputChanged(Message):
+        """
+        Sent when any input field value changes.
+        """
+        pass
 
-    # Functions
+    class InputAdded(Message):
+        """
+        Sent when a new input field is added.
+        """
+        def __init__(self, sender: 'InputList', addedWidget: Widget):
+            super().__init__()
+            self._control = sender
+            self.addedWidget = addedWidget
+
+        @property
+        def control(self) -> DOMNode | None:
+            """
+            The `InputList` associated with this message.
+            """
+            return self._control
+
+    class InputRemoved(Message):
+        """
+        Sent when an input field is removed.
+        """
+        def __init__(self, sender: 'InputList'):
+            super().__init__()
+            self._control = sender
+
+        @property
+        def control(self) -> DOMNode | None:
+            """
+            The `InputList` associated with this message.
+            """
+            return self._control
+
+    # MARK: Functions
     def getValues(self) -> list[Any]:
         """
         Returns the values of the input fields.
@@ -89,7 +137,7 @@ class InputList(Widget):
         return list(self._values.values())
 
     # Private Functions
-    def _prepareItems(self):
+    def _prepareInputs(self):
         """
         Builds the `self._inputs` for the current `self._action`.
         """
@@ -98,11 +146,11 @@ class InputList(Widget):
             # Process the default values
             for i, val in enumerate(self._defaults):
                 # Get item id
-                itemId = str(uuid.uuid4())
+                inputId = str(uuid.uuid4())
 
                 # Add the UI item to items
-                self._inputs[itemId] = self._buildListInputItem(
-                    itemId,
+                self._inputs[inputId] = self._buildListInputItem(
+                    inputId,
                     self._action,
                     value=val,
                     showRemove=self.showAddRemove,
@@ -110,18 +158,18 @@ class InputList(Widget):
                 )
 
                 # Add to command update
-                self._values[itemId] = val
+                self._values[inputId] = val
 
         # Add remaining inputs for nargs
         itemCount = len(self._inputs)
         if isinstance(self._action.nargs, int) and (itemCount < self._action.nargs):
             for i in range(itemCount, (self._action.nargs - itemCount)):
                 # Get item id
-                itemId = str(uuid.uuid4())
+                inputId = str(uuid.uuid4())
 
                 # Add the UI item to items
-                self._inputs[itemId] = self._buildListInputItem(
-                    itemId,
+                self._inputs[inputId] = self._buildListInputItem(
+                    inputId,
                     self._action,
                     showRemove=self.showAddRemove,
                     metavarIndex=i
@@ -144,7 +192,7 @@ class InputList(Widget):
         metavarIndex: The index of the `action.metavar` to use for the placeholder when the `action.metavar` is a tuple.
         """
         # Prepare the id for this list item
-        itemId = f"{action.dest}_{id}"
+        inputId = f"{action.dest}_{id}"
 
         # Update the values
         self._values[id] = value
@@ -174,7 +222,7 @@ class InputList(Widget):
                 InputBuilders.createInput(
                     action,
                     inputType=inputType,
-                    name=itemId,
+                    name=inputId,
                     classes=self.CLASS_LIST_INPUT_TEXT,
                     value=value,
                     metavarIndex=metavarIndex
@@ -185,7 +233,7 @@ class InputList(Widget):
         if showRemove:
             children.append(Button(
                 "X",
-                name=itemId,
+                name=inputId,
                 classes=f"{self.CLASS_LIST_RM_BTN}",
                 variant="error",
                 tooltip=f"Remove item"
@@ -194,6 +242,68 @@ class InputList(Widget):
         # Add a list input item
         return Horizontal(
             *children,
-            id=itemId,
+            id=inputId,
             classes="item"
         )
+
+    # MARK: Handlers
+    @on(Button.Pressed, f".{CLASS_LIST_ADD_BTN}")
+    def listAddButtonPressed(self, event: Button.Pressed) -> None:
+        """
+        Triggered when a list add button is pressed.
+        """
+        # Resolve it here
+        event.stop()
+
+        # Create a uuid for the new input
+        inputId = str(uuid.uuid4())
+
+        # Create a new input
+        newInput = self._buildListInputItem(
+            inputId,
+            self._action
+        )
+
+        # Update the lists data
+        self._inputs[inputId] = newInput
+
+        # Add a new item to the ui
+        self.get_widget_by_id(event.button.name).mount(newInput)
+
+        # Check if the list is full
+        if isinstance(self._action.nargs, int) and (len(self._inputs) >= self._action.nargs):
+            event.button.disabled = True
+
+        # Send the input added message
+        self.post_message(self.InputAdded(
+            sender=self,
+            addedWidget=newInput
+        ))
+
+    @on(Button.Pressed, f".{CLASS_LIST_RM_BTN}")
+    def listRemoveButtonPressed(self, event: Button.Pressed) -> None:
+        """
+        Triggered when a list remove button is pressed.
+        """
+        # Resolve it here
+        event.stop()
+
+        # Get the target
+        dest, inputId = event.button.name.split("_")
+
+        # Delete the input and value
+        del self._inputs[inputId]
+        del self._values[inputId]
+
+        # Remove the item from the ui
+        self.get_widget_by_id(event.button.name).remove()
+
+        # Check if list is no longer full
+        if isinstance(self._action.nargs, int) and (len(self._inputs) < self._action.nargs):
+            if addBtn := self.get_widget_by_id(f"{dest}_add"):
+                addBtn.disabled = False
+
+        # Send the input removed message
+        self.post_message(self.InputRemoved(
+            sender=self
+        ))

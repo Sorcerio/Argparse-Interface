@@ -49,6 +49,7 @@ class Interface(App):
     CLASS_EXCLUSIVE_TAB_BOX = "exclusiveContainer"
     CLASS_NAV_SECTION = "navSection"
     CLASS_NAV_INPUT = "navInput"
+    CLASS_INPUT_LIST = "inputList"
 
     BINDINGS = {
         Binding(
@@ -345,7 +346,8 @@ class Interface(App):
                     yield InputList(
                         action,
                         (not (isinstance(action.nargs, int) and (action.nargs > 1))),
-                        defaults=self._commands.get(action.dest, [])
+                        defaults=self._commands.get(action.dest, []),
+                        classes=self.CLASS_INPUT_LIST
                     )
                 elif action.type == int:
                     # Add an int input
@@ -567,58 +569,19 @@ class Interface(App):
         # # Report
         # self.log(debug=f"List based text changed: {event.input.id} -> {val} ({type(val)})")
 
-    @on(Button.Pressed, f".{InputList.CLASS_LIST_ADD_BTN}")
-    def listAddButtonPressed(self, event: Button.Pressed) -> None:
+    @on(InputList.InputAdded, f".{CLASS_INPUT_LIST}")
+    def inputListAddButtonPressed(self, event: InputList.InputAdded) -> None:
         """
-        Triggered when a list add button is pressed.
+        Triggered when a list input is added.
         """
-        # TODO: Fix
-        # # Unpack the data
-        # action, listItems = self._listsData[event.button.name]
+        print("ADD", event.__dict__) # TODO: Update _command
 
-        # # Get the uuid for this button
-        # buttonId = str(uuid.uuid4())
-
-        # # Create the list item
-        # listItem = self._buildListInputItem(
-        #     buttonId,
-        #     action
-        # )
-
-        # # Update the lists data
-        # listItems[buttonId] = listItem
-
-        # # Add a new item to the ui
-        # self.get_widget_by_id(event.button.name).mount(listItem)
-
-        # # Check if the list is full
-        # if isinstance(action.nargs, int) and (len(listItems) >= action.nargs):
-        #     event.button.disabled = True
-        #     return
-
-    @on(Button.Pressed, f".{InputList.CLASS_LIST_RM_BTN}")
-    def listRemoveButtonPressed(self, event: Button.Pressed) -> None:
+    @on(InputList.InputRemoved, f".{CLASS_INPUT_LIST}")
+    def inputListRemoveButtonPressed(self, event: InputList.InputRemoved) -> None:
         """
-        Triggered when a list remove button is pressed.
+        Triggered when a list input is removed.
         """
-        # TODO: Fix
-        # # Get the target
-        # dest, listId = event.button.name.split("_")
-        # action, listItems = self._listsData[dest]
-
-        # # Remove from the command
-        # _ = self._commands[dest].pop(listId)
-
-        # # Remove from the list data
-        # del listItems[listId]
-
-        # # Remove from the UI
-        # self.get_widget_by_id(event.button.name).remove()
-
-        # # Check if list is no longer full
-        # if isinstance(action.nargs, int) and (len(listItems) < action.nargs):
-        #     if addBtn := self.get_widget_by_id(f"{dest}_add"):
-        #         addBtn.disabled = False
+        print("REMOVE", event.__dict__) # TODO: Update _command
 
     @on(TabbedContent.TabActivated, f".{CLASS_SUBPARSER_TAB_BOX}")
     def tabActivated(self, event: TabbedContent.TabActivated) -> None:
