@@ -551,23 +551,14 @@ class Interface(App):
         self._commands[event.input.id] = val
         self.log(debug=f"Text changed: {event.input.id} -> {val} ({type(val)})")
 
-    @on(Input.Changed, f".{InputList.CLASS_LIST_INPUT_TEXT}")
-    def inputTypedInListChanged(self, event: Input.Changed) -> None:
+    @on(InputList.InputChanged, f".{CLASS_INPUT_LIST}")
+    def inputListItemChanged(self, event: InputList.InputChanged) -> None:
         """
-        Triggered when a typed text input *within a list* is changed.
+        Triggered when a list input is changed.
         """
-        # TODO: Fix
-        # # Get the target
-        # dest, id = event.input.name.split("_")
-
-        # # Get appropriate value type
-        # val = Utils.typedStringToValue(event.value, event.input.type) # TODO: Should make it so that list/non-list is agnostic
-
-        # # Update the command
-        # self._commands[dest][id] = val
-
-        # # Report
-        # self.log(debug=f"List based text changed: {event.input.id} -> {val} ({type(val)})")
+        # Update the command
+        self._commands[event.sender.getAction().dest] = event.sender.getValues()
+        self.log(debug=f"List Input changed: {event.input.id} -> {event.value} ({type(event.value)})")
 
     @on(InputList.InputAdded, f".{CLASS_INPUT_LIST}")
     def inputListAddButtonPressed(self, event: InputList.InputAdded) -> None:

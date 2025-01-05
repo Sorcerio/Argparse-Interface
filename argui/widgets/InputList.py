@@ -10,7 +10,7 @@ from typing import Optional, Any
 from textual import on
 from textual.dom import DOMNode
 from textual.widget import Widget
-from textual.widgets import Label, Button
+from textual.widgets import Label, Button, Input
 from textual.containers import Vertical, Horizontal
 from textual.message import Message
 
@@ -96,7 +96,18 @@ class InputList(Widget):
         """
         Sent when any input field value changes.
         """
-        pass
+        def __init__(self, sender: 'InputList', input: Input, value: Any):
+            super().__init__()
+            self.sender = sender
+            self.input = input
+            self.value = value
+
+        @property
+        def control(self) -> DOMNode | None:
+            """
+            The `InputList` associated with this message.
+            """
+            return self.sender
 
     class InputAdded(Message):
         """
@@ -253,6 +264,28 @@ class InputList(Widget):
         )
 
     # MARK: Handlers
+    @on(Input.Changed, f".{CLASS_LIST_INPUT_TEXT}")
+    def inputTypedInListChanged(self, event: Input.Changed) -> None:
+        """
+        Triggered when a typed text input in the list is changed.
+        """
+        # Resolve it here
+        event.stop()
+
+        # Get the target
+        dest, id = event.input.name.split("_")
+
+        # Update the value
+        value = Utils.typedStringToValue(event.value, event.input.type)
+        self._values[id] = Utils.typedStringToValue(event.value, event.input.type)
+
+        # Send the input changed message
+        self.post_message(self.InputChanged(
+            sender=self,
+            input=event.input,
+            value=value
+        ))
+
     @on(Button.Pressed, f".{CLASS_LIST_ADD_BTN}")
     def listAddButtonPressed(self, event: Button.Pressed) -> None:
         """
@@ -270,7 +303,7 @@ class InputList(Widget):
             self._action
         )
 
-        # Update the lists data
+        # Update the input
         self._inputs[inputId] = newInput
 
         # Add a new item to the ui
