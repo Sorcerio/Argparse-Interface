@@ -574,14 +574,16 @@ class Interface(App):
         """
         Triggered when a list input is added.
         """
-        print("ADD", event.__dict__) # TODO: Update _command
+        # Update the command
+        self._commands[event.sender.getAction().dest] = event.sender.getValues()
 
     @on(InputList.InputRemoved, f".{CLASS_INPUT_LIST}")
     def inputListRemoveButtonPressed(self, event: InputList.InputRemoved) -> None:
         """
         Triggered when a list input is removed.
         """
-        print("REMOVE", event.__dict__) # TODO: Update _command
+        # Update the command
+        self._commands[event.sender.getAction().dest] = event.sender.getValues()
 
     @on(TabbedContent.TabActivated, f".{CLASS_SUBPARSER_TAB_BOX}")
     def tabActivated(self, event: TabbedContent.TabActivated) -> None:

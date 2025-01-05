@@ -104,7 +104,7 @@ class InputList(Widget):
         """
         def __init__(self, sender: 'InputList', addedWidget: Widget):
             super().__init__()
-            self._control = sender
+            self.sender = sender
             self.addedWidget = addedWidget
 
         @property
@@ -112,7 +112,7 @@ class InputList(Widget):
             """
             The `InputList` associated with this message.
             """
-            return self._control
+            return self.sender
 
     class InputRemoved(Message):
         """
@@ -120,16 +120,22 @@ class InputList(Widget):
         """
         def __init__(self, sender: 'InputList'):
             super().__init__()
-            self._control = sender
+            self.sender = sender
 
         @property
         def control(self) -> DOMNode | None:
             """
             The `InputList` associated with this message.
             """
-            return self._control
+            return self.sender
 
     # MARK: Functions
+    def getAction(self) -> argparse.Action:
+        """
+        Returns the `argparse` action associated with this input list.
+        """
+        return self._action
+
     def getValues(self) -> list[Any]:
         """
         Returns the values of the input fields.
