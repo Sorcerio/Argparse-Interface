@@ -231,7 +231,8 @@ class InputList(Widget):
             # Create input and children
             children = [
                 FileSelect(
-                    classes=self.CLASS_LIST_INPUT_PATH
+                    classes=self.CLASS_LIST_INPUT_PATH,
+                    context=action
                 )
             ]
         else:

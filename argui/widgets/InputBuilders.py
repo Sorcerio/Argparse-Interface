@@ -134,6 +134,6 @@ def buildFileSelectInput(action: argparse.Action):
     yield Vertical(
         Label(Utils.codeStrToTitle(action.dest), classes="inputLabel"),
         Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
-        FileSelect(id=action.dest),
+        FileSelect(id=action.dest, context=action),
         classes="inputContainer fileSelectContainer"
     )

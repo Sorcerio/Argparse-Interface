@@ -5,7 +5,7 @@
 import uuid
 import argparse
 from pathlib import Path
-from typing import Optional, Union, Callable
+from typing import Optional, Union, Callable, Any
 
 from textual import on
 from textual.app import App
@@ -41,13 +41,15 @@ class FileSelect(Widget):
         name: Optional[str] = None,
         id: Optional[str] = None,
         classes: Optional[str] = None,
-        disabled: bool = False
+        disabled: bool = False,
+        context: Optional[Any] = None
     ) -> None:
         """
-        name: The name of the input list.
-        id: The id of the input list.
-        classes: The classes to apply to the input list.
-        disabled: If `True`, the input list will be disabled.
+        name: The name of the file select.
+        id: The id of the file select.
+        classes: The classes to apply to the file select.
+        disabled: If `True`, the file select will be disabled.
+        context: Any context to associate with the file select. This will be included in all event messages.
         """
         super().__init__(
             name=name,
@@ -56,13 +58,20 @@ class FileSelect(Widget):
             disabled=disabled
         )
 
+        self.context = context
+        self.__link: Optional[Link] = None # Populated in `compose()`
+
     def compose(self):
+        # Record the link element
+        self.__link = Link(
+            "No file selected.",
+            url="",
+            classes=self.CLASS_FILESELECT_LINK_LABEL
+        )
+
+        # Yield the interface
         yield Horizontal(
-            Link(
-                "No file selected.",
-                url="",
-                classes=self.CLASS_FILESELECT_LINK_LABEL
-            ),
+            self.__link,
             Button(
                 "Select",
                 variant="primary",
@@ -77,15 +86,42 @@ class FileSelect(Widget):
         """
         Sent when the File Select modal should be opened.
         """
-        def __init__(self, sender: 'FileSelect', showModal: Callable[[App, Optional[Union[str, Path]]], None]) -> None:
+        def __init__(self,
+            sender: 'FileSelect',
+            context: Optional[Any],
+            showModal: Callable[[App, Optional[Union[str, Path]]], None]
+        ) -> None:
             super().__init__()
             self.sender = sender
+            self.context = context
             self.showModal = showModal
 
         @property
         def control(self) -> DOMNode | None:
             """
-            The `InputList` associated with this message.
+            The `FileSelect` associated with this message.
+            """
+            return self.sender
+
+    class FileSelectComplete(Message):
+        """
+        Sent when a File Select modal has been closed with or without a selection.
+        `path` is `None` if the user cancelled or a `Path` object if a file was selected.
+        """
+        def __init__(self,
+            sender: 'FileSelect',
+            context: Optional[Any],
+            path: Optional[Path]
+        ) -> None:
+            super().__init__()
+            self.sender = sender
+            self.context = context
+            self.path = path
+
+        @property
+        def control(self) -> DOMNode | None:
+            """
+            The `FileSelect` associated with this message.
             """
             return self.sender
 
@@ -104,19 +140,18 @@ class FileSelect(Widget):
             """
             path: A `Path` object or `None` if the user cancelled.
             """
-            # TODO: Replace with an event call!
+            # Send the message
+            self.post_message(self.FileSelectComplete(
+                sender=self,
+                context=self.context,
+                path=path
+            ))
 
-            # # Check if a path was selected
-            # if isinstance(path, Path):
-            #     # Update the command
-            #     self._commands[dest] = path
-
-            #     # Update the label
-            #     linkLabel: Link = self.query_one(f"#{dest}_fileSelectLabel") # TODO: Constants for all ids and classes!
-            #     if linkLabel:
-            #         linkLabel.update(Utils.limitString(str(path), 42, trimRight=False))
-            #         linkLabel.tooltip = str(path)
-            #         linkLabel.url = path
+            # Update the label
+            if isinstance(path, Path):
+                self.__link.update(Utils.limitString(str(path), 42, trimRight=False))
+                self.__link.tooltip = str(path)
+                self.__link.url = path
 
         # Push the modal
         app.push_screen(
@@ -139,5 +174,6 @@ class FileSelect(Widget):
         # Send the modal message
         self.post_message(self.ModalRequested(
             sender=self,
+            context=self.context,
             showModal=self.presentFileSelectModal
         ))

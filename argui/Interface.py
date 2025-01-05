@@ -2,29 +2,24 @@
 # Automatic interface for the `argparse` module.
 
 # MARK: Imports
-import re
 import os
 import argparse
-import uuid
 from pathlib import Path
-from typing import Union, Optional, Any, Iterable
+from typing import Optional, Any, Iterable
 
 from textual import on
 from textual.app import App, SystemCommand, ComposeResult
 from textual.binding import Binding
-from textual.validation import Number
 from textual.containers import Vertical, Horizontal
 from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input, Button, Tree, Link
 
 from . import Utils
-from .Logging import getLogger
 from .ParserMap import ParserMap
 from .ParserGroup import ParserGroup
 from .modals.QuitModal import QuitModal
 from .modals.SubmitModal import SubmitModal
 from .modals.SubmitErrorModal import SubmitErrorModal
-from .modals.FileSelectModal import FileSelectModal
-from .widgets import InputBuilders, InputList
+from .widgets import InputBuilders, InputList, FileSelect
 from .debug.ExportDOM import exportDOM
 
 # TODO: Break down this file into smaller components
@@ -612,37 +607,23 @@ class Interface(App):
                 if target and scrollArea:
                     scrollArea.scroll_to_widget(target)
 
-    @on(Button.Pressed, f".{InputBuilders.CLASS_FILESELECT_OPEN_BTN}")
-    def fileSelectOpenButtonPressed(self, event: Button.Pressed) -> None:
+    @on(FileSelect.ModalRequested, f".{FileSelect.CLASS_FILESELECT_ROOT}")
+    def fileSelectOpenButtonPressed(self, event: FileSelect.ModalRequested) -> None:
         """
-        Triggered when a file select's "open" button is pressed to open the file select modal.
+        Triggered when a file select's "open" button is pressed.
         """
-        # Get the target
-        dest = event.button.id
+        action: argparse.Action = event.context
+        event.showModal(self, self._commands.get(action.dest))
 
-        # Create the file select return handler
-        def fileSelectDone(path: Optional[Path]):
-            """
-            path: A `Path` object or `None` if the user cancelled.
-            """
-            # Check if a path was selected
-            # TODO: Make this work with list based versions
-            if isinstance(path, Path):
-                # Update the command
-                self._commands[dest] = path
+    @on(FileSelect.FileSelectComplete, f".{FileSelect.CLASS_FILESELECT_ROOT}")
+    def fileSelectModalComplete(self, event: FileSelect.FileSelectComplete) -> None:
+        """
+        Triggered when a file select modal is completed.
+        """
+        # Get the action
+        action: argparse.Action = event.context
 
-                # Update the label
-                linkLabel: Link = self.query_one(f"#{dest}_fileSelectLabel") # TODO: Constants for all ids and classes!
-                if linkLabel:
-                    linkLabel.update(Utils.limitString(str(path), 42, trimRight=False))
-                    linkLabel.tooltip = str(path)
-                    linkLabel.url = path
-
-        # Push the modal
-        self.push_screen(
-            FileSelectModal(
-                self,
-                self._commands.get(dest)
-            ),
-            callback=fileSelectDone
-        )
+        # Check if a path was selected
+        if isinstance(event.path, Path):
+            # Update the command
+            self._commands[action.dest] = event.path
