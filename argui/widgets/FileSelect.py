@@ -59,11 +59,11 @@ class FileSelect(Widget):
         )
 
         self.context = context
-        self.__link: Optional[Link] = None # Populated in `compose()`
+        self.__linkLabel: Optional[Link] = None # Populated in `compose()`
 
     def compose(self):
         # Record the link element
-        self.__link = Link(
+        self.__linkLabel = Link(
             "No file selected.",
             url="",
             classes=self.CLASS_FILESELECT_LINK_LABEL
@@ -71,7 +71,7 @@ class FileSelect(Widget):
 
         # Yield the interface
         yield Horizontal(
-            self.__link,
+            self.__linkLabel,
             Button(
                 "Select",
                 variant="primary",
@@ -126,6 +126,12 @@ class FileSelect(Widget):
             return self.sender
 
     # MARK: Functions
+    def getPath(self) -> Path:
+        """
+        Returns the current path of the file select.
+        """
+        return Path(self.__linkLabel.url)
+
     def presentFileSelectModal(self,
         app: App,
         startPath: Optional[Union[str, Path]] = None
@@ -149,9 +155,9 @@ class FileSelect(Widget):
 
             # Update the label
             if isinstance(path, Path):
-                self.__link.update(Utils.limitString(str(path), 42, trimRight=False))
-                self.__link.tooltip = str(path)
-                self.__link.url = path
+                self.__linkLabel.update(Utils.limitString(str(path), 42, trimRight=False))
+                self.__linkLabel.tooltip = str(path)
+                self.__linkLabel.url = path
 
         # Push the modal
         app.push_screen(

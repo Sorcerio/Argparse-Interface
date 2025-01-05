@@ -612,8 +612,7 @@ class Interface(App):
         """
         Triggered when a file select's "open" button is pressed.
         """
-        action: argparse.Action = event.context
-        event.showModal(self, self._commands.get(action.dest))
+        event.showModal(self, self._commands.get(event.context.dest if hasattr(event.context, "dest") else str(event.context)))
 
     @on(FileSelect.FileSelectComplete, f".{FileSelect.CLASS_FILESELECT_ROOT}")
     def fileSelectModalComplete(self, event: FileSelect.FileSelectComplete) -> None:

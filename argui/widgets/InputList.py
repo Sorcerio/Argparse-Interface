@@ -232,7 +232,7 @@ class InputList(Widget):
             children = [
                 FileSelect(
                     classes=self.CLASS_LIST_INPUT_PATH,
-                    context=action
+                    context=id
                 )
             ]
         else:
@@ -299,6 +299,29 @@ class InputList(Widget):
             input=event.input,
             value=value
         ))
+
+    @on(FileSelect.FileSelectComplete, f".{CLASS_LIST_INPUT_PATH}")
+    def inputPathInListChanged(self, event: FileSelect.FileSelectComplete) -> None:
+        """
+        Triggered when a path input in the list is changed.
+        """
+        # Resolve it here
+        event.stop()
+
+        # Get the input id
+        inputId: str = event.context
+
+        # Check if a path was selected
+        if isinstance(event.path, Path):
+            # Update the value
+            self._values[inputId] = event.path
+
+            # Send the input changed message
+            self.post_message(self.InputChanged(
+                sender=self,
+                input=event.control,
+                value=event.path
+            ))
 
     @on(Button.Pressed, f".{CLASS_LIST_ADD_BTN}")
     def listAddButtonPressed(self, event: Button.Pressed) -> None:

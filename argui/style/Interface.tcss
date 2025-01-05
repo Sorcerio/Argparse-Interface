@@ -104,6 +104,10 @@ Screen {
                 margin-bottom: 1;
             }
 
+            FileSelect {
+                width: 4fr;
+            }
+
             .listInputItemBox {
                 background: $surface-lighten-1;
                 height: auto;
@@ -123,11 +127,15 @@ Screen {
 
                 .fileSelectBox {
                     background: $boost-lighten-1;
-                    width: 4fr;
+                    width: 1fr;
 
                     .fileSelectLabel {
                         width: 3fr;
                         padding: 1 1 1 1;
+                    }
+
+                    .fileSelectButton {
+                        width: 1fr;
                     }
                 }
 
