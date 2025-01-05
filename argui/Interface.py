@@ -16,6 +16,7 @@ from textual.validation import Number
 from textual.containers import Vertical, Horizontal
 from textual.widgets import Header, Footer, TabbedContent, TabPane, Label, Switch, Select, Input, Button, Tree, Link
 
+from . import Utils
 from .Logging import getLogger
 from .ParserMap import ParserMap
 from .ParserGroup import ParserGroup
@@ -23,6 +24,7 @@ from .modals.QuitModal import QuitModal
 from .modals.SubmitModal import SubmitModal
 from .modals.SubmitErrorModal import SubmitErrorModal
 from .modals.FileSelectModal import FileSelectModal
+from .widgets import InputBuilders
 from .debug.ExportDOM import exportDOM
 
 # TODO: Break down this file into smaller components
@@ -43,9 +45,6 @@ class Interface(App):
     ID_NAV_TREE = "navTree"
     ID_CONTENT_AREA = "contentArea"
 
-    CLASS_SWITCH = "switchInput"
-    CLASS_DROPDOWN = "dropdownInput"
-    CLASS_TYPED_TEXT = "textInput"
     CLASS_LIST_RM_BTN = "listRemoveButton"
     CLASS_LIST_ADD_BTN = "listAddButton"
     CLASS_LIST_TEXT = "listInput"
@@ -53,7 +52,6 @@ class Interface(App):
     CLASS_EXCLUSIVE_TAB_BOX = "exclusiveContainer"
     CLASS_NAV_SECTION = "navSection"
     CLASS_NAV_INPUT = "navInput"
-    CLASS_FILESELECT_OPEN_BTN = "fileSelectButton"
 
     BINDINGS = {
         Binding(
@@ -140,7 +138,7 @@ class Interface(App):
 
         # Set the title
         self.title = self.mainTitle
-        self.sub_title = (self._limitString(self.mainSubtitle, 64) if isinstance(self.mainSubtitle, str) else "")
+        self.sub_title = (Utils.limitString(self.mainSubtitle, 64) if isinstance(self.mainSubtitle, str) else "")
 
         # Install any tabs
         for tabsId, actions in self.__initTabsContent.items():
@@ -179,7 +177,7 @@ class Interface(App):
             if group.isUuidTitle:
                 groupTitle = f"Section {groupIndex + 1}"
             else:
-                groupTitle = self._toTitleCase(group.title)
+                groupTitle = Utils.toTitleCase(group.title)
 
             # Add the group branch
             groupBranch = tree.root.add(
@@ -197,7 +195,7 @@ class Interface(App):
 
                 # Add the leaf
                 groupBranch.add_leaf(
-                    f"{self._codeStrToTitle(action.dest)}{infoText}",
+                    f"{Utils.codeStrToTitle(action.dest)}{infoText}",
                     data=(self.CLASS_NAV_INPUT, action.dest)
                 )
 
@@ -256,7 +254,7 @@ class Interface(App):
             if group.isUuidTitle:
                 container.border_title = f"Section {groupIndex + 1}"
             else:
-                container.border_title = self._toTitleCase(group.title)
+                container.border_title = Utils.toTitleCase(group.title)
 
             # Send it
             yield container
@@ -333,7 +331,7 @@ class Interface(App):
             # TODO: Check argparse docs to find any missing deliniations
             if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
                 # Add a switch
-                yield from self._buildSwitchInput(action)
+                yield from InputBuilders.buildSwitchInput(action)
             elif isinstance(action, argparse._SubParsersAction):
                 # Add a subparser group
                 yield from self._buildSubparserGroup(action)
@@ -342,7 +340,7 @@ class Interface(App):
                 # Decide based on expected type and properties
                 if (action.choices is not None):
                     # Add a combo box input
-                    yield from self._buildDropdownInput(action)
+                    yield from InputBuilders.buildDropdownInput(action)
                 elif ((action.nargs == argparse.ONE_OR_MORE) or
                       (action.nargs == argparse.ZERO_OR_MORE) or
                       (isinstance(action.nargs, int) and (action.nargs > 1))):
@@ -353,162 +351,19 @@ class Interface(App):
                     )
                 elif action.type == int:
                     # Add an int input
-                    yield from self._buildTypedInput(action, inputType="integer")
+                    yield from InputBuilders.buildTypedInput(action, inputType="integer")
                 elif action.type == float:
                     # Add a float input
-                    yield from self._buildTypedInput(action, inputType="number")
+                    yield from InputBuilders.buildTypedInput(action, inputType="number")
                 elif action.type == Path:
                     # Add a file input
-                    yield from self._buildFileSelectInput(action)
+                    yield from InputBuilders.buildFileSelectInput(action)
                 else:
                     # Add a string input
-                    yield from self._buildTypedInput(action)
+                    yield from InputBuilders.buildTypedInput(action)
             else:
                 # Report
                 self.log(warn=f"Unknown action type: {action}")
-
-    def _buildSwitchInput(self, action: argparse.Action):
-        """
-        Yields a switch input for the given `action`.
-
-        action: The `argparse` action to build from.
-        """
-        # Add a switch
-        yield Vertical(
-            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
-            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
-            Switch(
-                # If by providing the flag the result value is False, then the switch should be the opposite
-                value=isinstance(action, argparse._StoreFalseAction),
-                tooltip=action.help,
-                id=action.dest,
-                classes=f"{self.CLASS_SWITCH}"
-            ),
-            classes="inputContainer"
-        )
-
-    def _buildDropdownInput(self, action: argparse.Action):
-        """
-        Yields a dropdown (select) input for the given `action`.
-
-        action: The `argparse` action to build from.
-        """
-        # Add select dropdown
-        yield Vertical(
-            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
-            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
-            Select(
-                options=[(str(c), c) for c in action.choices],
-                value=(action.default if (action.default is not None) else action.choices[0]),
-                tooltip=action.help,
-                id=action.dest,
-                classes=f"{self.CLASS_DROPDOWN}"
-            ),
-            classes="inputContainer"
-        )
-
-    def _createInput(self,
-        action: argparse.Action,
-        inputType: str = "text",
-        name: Optional[str] = None,
-        classes: Optional[str] = CLASS_TYPED_TEXT,
-        value: Optional[Union[str, int, float]] = None,
-        metavarIndex: Optional[int] = None
-    ) -> Input:
-        """
-        Creates a setup `Input` object for the given `action`.
-        For the full input group, use `_buildTypedInput(...)`.
-
-        action: The `argparse` action to build from.
-        inputType: The type of input to use for the Textual `Input(type=...)` value.
-        classes: The classes to add to the input.
-        value: The value to set the input to initially.
-        metavarIndex: The index of the `action.metavar` to use for the placeholder when the `action.metavar` is a tuple.
-        """
-        # Decide validators
-        validators = None
-        if action.type == int:
-            validators = [Number()]
-        elif action.type == float:
-            validators = [Number()]
-
-        # Decide placeholder
-        if isinstance(action.metavar, tuple):
-            placeholder = (str(action.metavar[metavarIndex]) if (isinstance(metavarIndex, int) and (0 <= metavarIndex < len(action.metavar))) else action.dest)
-        else:
-            placeholder = (str(action.metavar) if action.metavar else action.dest)
-
-        # Send the input
-        return Input(
-            value=(str(value) if (value is not None) else None),
-            placeholder=placeholder.upper(),
-            tooltip=action.help,
-            type=inputType,
-            name=name,
-            id=action.dest,
-            classes=classes,
-            validators=validators
-        )
-
-    def _createFileSelectInput(self, action: argparse.Action) -> Horizontal:
-        """
-        Creates a setup `Horizontal` object containing the interface for a file select input for the given `action`.
-
-        action: The `argparse` action to build from.
-        """
-        return Horizontal(
-            Link(
-                "No file selected.",
-                url="",
-                id=f"{action.dest}_fileSelectLabel",
-                classes="fileSelectLabel"
-            ),
-            Button(
-                "Select",
-                id=action.dest,
-                variant="primary",
-                classes=self.CLASS_FILESELECT_OPEN_BTN,
-                tooltip="Select a file from your system.", # TODO: Change text based on type
-            ),
-            classes="fileSelectInput"
-        )
-
-    def _buildTypedInput(self, action: argparse.Action, inputType: str = "text"):
-        """
-        Yields a typed text input group for the given `action`.
-        For just the `Input` object, use `_createInput(...)`.
-
-        action: The `argparse` action to build from.
-        inputType: The type of input to use for the Textual `Input(type=...)` value.
-        hideLabel: If `True`, the label will be hidden.
-        """
-        # Add a typed input
-        yield Vertical(
-            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
-            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
-            self._createInput(
-                action,
-                inputType=inputType,
-                classes=self.CLASS_TYPED_TEXT,
-                value=(action.default or None)
-            ),
-            classes="inputContainer"
-        )
-
-    def _buildFileSelectInput(self, action: argparse.Action):
-        """
-        Yields an initial interface for a file select input that allows the file select modal to be opened.
-        Also tracks the selected file path.
-
-        action: The `argparse` action to build from.
-        """
-        # Add a file select input
-        yield Vertical(
-            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
-            Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
-            self._createFileSelectInput(action),
-            classes="inputContainer fileSelectContainer"
-        )
 
     def _buildListInput(self, action: argparse.Action, showAddRemove: bool = True):
         """
@@ -566,7 +421,7 @@ class Interface(App):
 
         # Prepare the children
         children = [
-            Label(self._codeStrToTitle(action.dest), classes="inputLabel"),
+            Label(Utils.codeStrToTitle(action.dest), classes="inputLabel"),
             Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
             Vertical(
                 *items.values(),
@@ -582,7 +437,7 @@ class Interface(App):
                 name=listId,
                 variant="primary",
                 classes=f"{self.CLASS_LIST_ADD_BTN}",
-                tooltip=f"Add a new item to {self._codeStrToTitle(action.dest)}",
+                tooltip=f"Add a new item to {Utils.codeStrToTitle(action.dest)}",
                 disabled=((len(items) >= action.nargs) if isinstance(action.nargs, int) else False)
             ))
 
@@ -622,7 +477,7 @@ class Interface(App):
             # File Select input
             # Create input and children
             children = [
-                self._createFileSelectInput(action)
+                InputBuilders.createFileSelectInput(action)
             ]
         else:
             # Standard input
@@ -639,7 +494,7 @@ class Interface(App):
 
             # Create input and children
             children = [
-                self._createInput(
+                InputBuilders.createInput(
                     action,
                     inputType=inputType,
                     name=itemId,
@@ -687,7 +542,7 @@ class Interface(App):
             self.__initTabsContent[tabs].append(action)
 
         # Yield the tabbed content
-        yield Label(self._codeStrToTitle(action.dest), classes="inputLabel forSubparser")
+        yield Label(Utils.codeStrToTitle(action.dest), classes="inputLabel forSubparser")
         yield Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp forSubparser")
         yield TabbedContent(id=tabs, classes=self.CLASS_SUBPARSER_TAB_BOX)
 
@@ -789,87 +644,11 @@ class Interface(App):
 
         return validDests
 
-    def _toTitleCase(self, s: str) -> str:
-        """
-        Converts a string to title case.
-        """
-        return " ".join([w.capitalize() for w in s.split(" ")])
-
-    def _splitCamelCase(self, s: str) -> str:
-        """
-        Splits a camel case string into words.
-        """
-        return " ".join(re.sub('([A-Z][a-z]+)', r' \1', re.sub('([A-Z]+)', r' \1', s)).split())
-
-    def _splitSnakeCase(self, s: str) -> str:
-        """
-        Splits a snake case string into words.
-        """
-        return " ".join([w for w in s.split("_")])
-
-    def _codeStrToTitle(self, s: str) -> str:
-        """
-        Converts a code stlye string (camelCase or snake_case) to a title case string.
-        """
-        return self._toTitleCase(self._splitCamelCase(self._splitSnakeCase(s)))
-
-    def _typedStringToValue(self, s: str, inputType: str) -> Optional[Union[str, int, float]]:
-        """
-        Converts a typed input string into an `int`, `float`, the `s` string, or `None`.
-
-        s: The string to convert.
-        inputType: The type of input to convert to.
-
-        Returns the converted value.
-        """
-        try:
-            if inputType == "integer":
-                return int(s)
-            elif inputType == "number":
-                return float(s)
-            else:
-                return s
-        except ValueError:
-            return None
-
     def _exportDOM(self) -> None:
         """
         Exports the Textual DOM that is currently displayed.
         """
         exportDOM(self.screen)
-
-    def _limitString(self,
-        s: str,
-        maxChars: int,
-        postfix: str = "...",
-        trimRight: bool = True
-    ) -> str:
-        """
-        Limits a string to a certain number of characters, adding a postfix if the string is longer than the limit.
-        Takes the length of the postfix into account.
-
-        s: The string to limit.
-        maxChars: The maximum number of characters the string should have.
-        postfix: The postfix to add to the string if it is longer than the limit.
-        trimRight: If `True`, the postfix will be added to the right side of the string like "Hello...". If `False`, the postfix will be added to the left side of the string like "...World".
-
-        Returns a string with a length less than or equal to `maxChars`.
-        """
-        # Check if it's even a string
-        if not isinstance(s, str):
-            raise ValueError("`s` must be a string.")
-
-        # Check if it's within range
-        if len(s) <= maxChars:
-            return s
-
-        # Check the side to cut
-        if trimRight:
-            # Trim the right side
-            return s[:maxChars - len(postfix) + 1] + postfix
-        else:
-            # Trim the left side
-            return postfix + s[-(maxChars - len(postfix) + 1):]
 
     # MARK: Actions
     def action_onQuit(self):
@@ -900,7 +679,7 @@ class Interface(App):
             SubmitModal.pushScreen(self)
 
     # MARK: Handlers
-    @on(Switch.Changed, f".{CLASS_SWITCH}")
+    @on(Switch.Changed, f".{InputBuilders.CLASS_SWITCH}")
     def inputSwitchChanged(self, event: Switch.Changed) -> None:
         """
         Triggered when an input switch is changed.
@@ -908,7 +687,7 @@ class Interface(App):
         self._commands[event.switch.id] = event.value
         self.log(debug=f"Switch changed: {event.switch.id} -> {event.value}")
 
-    @on(Select.Changed, f".{CLASS_DROPDOWN}")
+    @on(Select.Changed, f".{InputBuilders.CLASS_DROPDOWN}")
     def inputDropdownChanged(self, event: Select.Changed) -> None:
         """
         Triggered when an input dropdown is changed.
@@ -916,13 +695,13 @@ class Interface(App):
         self._commands[event.select.id] = event.value
         self.log(debug=f"Dropdown changed: {event.select.id} -> {event.value}")
 
-    @on(Input.Changed, f".{CLASS_TYPED_TEXT}")
+    @on(Input.Changed, f".{InputBuilders.CLASS_TYPED_TEXT}")
     def inputTypedChanged(self, event: Input.Changed) -> None:
         """
         Triggered when a typed text input is changed.
         """
         # Get appropriate value type
-        val = self._typedStringToValue(event.value, event.input.type)
+        val = Utils.typedStringToValue(event.value, event.input.type)
 
         # Update
         self._commands[event.input.id] = val
@@ -937,7 +716,7 @@ class Interface(App):
         dest, id = event.input.name.split("_")
 
         # Get appropriate value type
-        val = self._typedStringToValue(event.value, event.input.type) # TODO: Should make it so that list/non-list is agnostic
+        val = Utils.typedStringToValue(event.value, event.input.type) # TODO: Should make it so that list/non-list is agnostic
 
         # Update the command
         self._commands[dest][id] = val
@@ -1032,7 +811,7 @@ class Interface(App):
                 if target and scrollArea:
                     scrollArea.scroll_to_widget(target)
 
-    @on(Button.Pressed, f".{CLASS_FILESELECT_OPEN_BTN}")
+    @on(Button.Pressed, f".{InputBuilders.CLASS_FILESELECT_OPEN_BTN}")
     def fileSelectOpenButtonPressed(self, event: Button.Pressed) -> None:
         """
         Triggered when a file select's "open" button is pressed to open the file select modal.
@@ -1054,7 +833,7 @@ class Interface(App):
                 # Update the label
                 linkLabel: Link = self.query_one(f"#{dest}_fileSelectLabel") # TODO: Constants for all ids and classes!
                 if linkLabel:
-                    linkLabel.update(self._limitString(str(path), 42, trimRight=False))
+                    linkLabel.update(Utils.limitString(str(path), 42, trimRight=False))
                     linkLabel.tooltip = str(path)
                     linkLabel.url = path
 
