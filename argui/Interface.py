@@ -22,8 +22,6 @@ from .modals.SubmitErrorModal import SubmitErrorModal
 from .widgets import InputBuilders, InputList, FileSelect
 from .debug.ExportDOM import exportDOM
 
-# TODO: Break down this file into smaller components
-
 # MARK: Classes
 class Interface(App):
     """
@@ -329,7 +327,6 @@ class Interface(App):
                 # Add a subparser group
                 yield from self._buildSubparserGroup(action)
             elif isinstance(action, argparse._StoreAction):
-                # TODO: Additional advanced "typed" input types
                 # Decide based on expected type and properties
                 if (action.choices is not None):
                     # Add a combo box input

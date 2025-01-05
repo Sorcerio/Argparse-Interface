@@ -37,6 +37,8 @@ class FileSelect(Widget):
     """
 
     # MARK: Lifecycle
+    # TODO: Add file select type (any, any file, file with exts, dir, etc)
+    # ^[need to have a way to connect extra data with an argparse argument for this!]
     def __init__(self,
         name: Optional[str] = None,
         id: Optional[str] = None,
@@ -76,7 +78,7 @@ class FileSelect(Widget):
                 "Select",
                 variant="primary",
                 classes=self.CLASS_FILESELECT_OPEN_BTN,
-                tooltip="Select a file from your system.", # TODO: Change text based on type
+                tooltip="Select a file from your system.", # TODO: Change text based on select type
             ),
             classes=self.CLASS_FILESELECT_BOX
         )
