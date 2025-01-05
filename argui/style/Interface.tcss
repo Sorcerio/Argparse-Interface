@@ -59,7 +59,7 @@ Screen {
         }
 
         .fileSelectContainer {
-            .fileSelectInput {
+            .fileSelectBox {
                 background: $surface-lighten-1;
                 height: auto;
                 content-align: right middle;
@@ -121,7 +121,7 @@ Screen {
                     margin: 0;
                 }
 
-                .fileSelectInput {
+                .fileSelectBox {
                     background: $boost-lighten-1;
                     width: 4fr;
 

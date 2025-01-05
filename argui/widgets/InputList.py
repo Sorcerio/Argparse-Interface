@@ -15,6 +15,7 @@ from textual.containers import Vertical, Horizontal
 from textual.message import Message
 
 from . import InputBuilders
+from .FileSelect import FileSelect
 from .. import Utils
 
 # MARK: Classes
@@ -28,6 +29,7 @@ class InputList(Widget):
     CLASS_LIST_RM_BTN = "listRemoveButton"
     CLASS_LIST_ADD_BTN = "listAddButton"
     CLASS_LIST_INPUT_TEXT = "listInputText"
+    CLASS_LIST_INPUT_PATH = "listInputPath"
 
     DEFAULT_CSS = """
     InputList {
@@ -44,8 +46,17 @@ class InputList(Widget):
         name: Optional[str] = None,
         id: Optional[str] = None,
         classes: Optional[str] = None,
-        disabled: bool = False,
+        disabled: bool = False
     ) -> None:
+        """
+        action: The `argparse.Action` to associate with this input list.
+        showAddRemove: If `True`, add and remove buttons will be shown.
+        defaults: The default values for the input list.
+        name: The name of the input list.
+        id: The id of the input list.
+        classes: The classes to apply to the input list.
+        disabled: If `True`, the input list will be disabled.
+        """
         super().__init__(
             name=name,
             id=id,
@@ -219,7 +230,9 @@ class InputList(Widget):
             # File Select input
             # Create input and children
             children = [
-                InputBuilders.createFileSelectInput(action)
+                FileSelect(
+                    classes=self.CLASS_LIST_INPUT_PATH
+                )
             ]
         else:
             # Standard input

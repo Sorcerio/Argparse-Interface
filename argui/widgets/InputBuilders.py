@@ -9,12 +9,12 @@ from textual.validation import Number
 from textual.containers import Vertical, Horizontal
 from textual.widgets import Label, Switch, Select, Input, Button, Link
 
+from .FileSelect import FileSelect
 from .. import Utils
 
 # MARK: Constants
 CLASS_SWITCH = "switchInput"
 CLASS_DROPDOWN = "dropdownInput"
-CLASS_FILESELECT_OPEN_BTN = "fileSelectButton"
 CLASS_TYPED_TEXT = "textInput"
 
 # MARK: Functions
@@ -101,29 +101,6 @@ def createInput(
         validators=validators
     )
 
-def createFileSelectInput(action: argparse.Action) -> Horizontal:
-    """
-    Creates a setup `Horizontal` object containing the interface for a file select input for the given `action`.
-
-    action: The `argparse` action to build from.
-    """
-    return Horizontal(
-        Link(
-            "No file selected.",
-            url="",
-            id=f"{action.dest}_fileSelectLabel",
-            classes="fileSelectLabel"
-        ),
-        Button(
-            "Select",
-            id=action.dest,
-            variant="primary",
-            classes=CLASS_FILESELECT_OPEN_BTN,
-            tooltip="Select a file from your system.", # TODO: Change text based on type
-        ),
-        classes="fileSelectInput"
-    )
-
 def buildTypedInput(action: argparse.Action, inputType: str = "text"):
     """
     Yields a typed text input group for the given `action`.
@@ -157,6 +134,6 @@ def buildFileSelectInput(action: argparse.Action):
     yield Vertical(
         Label(Utils.codeStrToTitle(action.dest), classes="inputLabel"),
         Label((action.help or f"Supply \"{action.metavar}\"."), classes="inputHelp"),
-        createFileSelectInput(action),
+        FileSelect(id=action.dest),
         classes="inputContainer fileSelectContainer"
     )
