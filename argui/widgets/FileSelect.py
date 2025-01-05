@@ -155,10 +155,7 @@ class FileSelect(Widget):
 
         # Push the modal
         app.push_screen(
-            FileSelectModal(
-                app,
-                startPath
-            ),
+            FileSelectModal(startPath),
             callback=fileSelectDone
         )
 

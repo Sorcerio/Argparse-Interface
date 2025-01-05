@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Union, Optional
 
 from textual import on
-from textual.app import App, ComposeResult
+from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, DirectoryTree
@@ -31,16 +31,12 @@ class FileSelectModal(ModalScreen[Optional[Path]]):
     ID_SELECT_BTN = "fsModalSelectButton"
 
     # Lifecycle
-    def __init__(self, app: App, startPath: Optional[Union[str, Path]]):
+    def __init__(self, startPath: Optional[Union[str, Path]]):
         """
-        app: The `App` object that this modal is attached to.
         startPath: The path to start the modal at.
         """
         # Super
         super().__init__()
-
-        # Data
-        self._app = app
 
         # Setup start path
         if startPath is None:
