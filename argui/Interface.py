@@ -25,6 +25,8 @@ from .modals.SubmitErrorModal import SubmitErrorModal
 from .modals.FileSelectModal import FileSelectModal
 from .debug.ExportDOM import exportDOM
 
+# TODO: Break down this file into smaller components
+
 # MARK: Classes
 class Interface(App):
     """
@@ -935,7 +937,7 @@ class Interface(App):
         dest, id = event.input.name.split("_")
 
         # Get appropriate value type
-        val = self._typedStringToValue(event.value, event.input.type)
+        val = self._typedStringToValue(event.value, event.input.type) # TODO: Should make it so that list/non-list is agnostic
 
         # Update the command
         self._commands[dest][id] = val
