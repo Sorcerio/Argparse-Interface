@@ -20,7 +20,7 @@ from .modals.QuitModal import QuitModal
 from .modals.SubmitModal import SubmitModal
 from .modals.SubmitErrorModal import SubmitErrorModal
 from .widgets import InputBuilders, InputList, FileSelect
-from .types import FileSelectFile
+from .types import FileSelectFile, FileSelectDir
 from .debug.ExportDOM import exportDOM
 
 # MARK: Classes
@@ -349,7 +349,8 @@ class Interface(App):
                     # Add a float input
                     yield from InputBuilders.buildTypedInput(action, inputType="number")
                 elif ((action.type == Path) or
-                      ((action.type == FileSelectFile) or (isinstance(action.type, FileSelectFile)))):
+                      isinstance(action.type, FileSelectFile) or
+                      isinstance(action.type, FileSelectDir)):
                     # Add a file input
                     yield from InputBuilders.buildFileSelectInput(action)
                 else:

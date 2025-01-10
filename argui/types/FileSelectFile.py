@@ -38,7 +38,7 @@ class FileSelectFile(MetaType):
         try:
             path = Path(value)
         except:
-            raise argparse.ArgumentTypeError(f"Value is not a Path: {value}")
+            raise argparse.ArgumentTypeError(f"Value is not a file system path: {value}")
 
         # Check if the path is a file
         if not path.is_file():
