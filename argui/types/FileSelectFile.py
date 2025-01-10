@@ -1,15 +1,17 @@
 # Argparse Interface: File Select File Type
-# A stand-in type that indicates the interface should only accept files.
+# A meta type that indicates the interface should only accept files.
 
 # MARK: Imports
 import argparse
 from pathlib import Path
 from typing import Optional, Iterable
 
+from .MetaType import MetaType
+
 # MARK: Classes
-class FileSelectFile:
+class FileSelectFile(MetaType):
     """
-    A stand-in type that indicates the interface should only accept files.
+    A meta type that indicates the interface should only accept files.
 
     This class should be instantiated when used as in an `argparse.add_argument(...)` call's `type` as such: `argparse.add_argument(type=(...))`.
 
@@ -21,16 +23,14 @@ class FileSelectFile:
         """
         exts: The file extensions to accept. Case-insensitive. Provide `None` to accept any file extension.
         """
+        # Super
+        super().__init__(*args)
+
         # Setup file extensions
         self.validExts = exts
 
         if self.validExts is not None:
             self.validExts = [ext.lower().lstrip(".") for ext in self.validExts]
-
-        # Check if used incorrectly
-        if (args is not None) and (len(args) > 0):
-            print(args, type(args))
-            raise argparse.ArgumentTypeError(f"{self.__class__.__name__} has been implemented incorrectly. Use only keyword arguments and ensure {self.__class__.__name__} is instantiated when used for a `type` like: `argparse.add_argument(type={self.__class__.__name__}(...))`.")
 
     # Python Functions
     def __call__(self, value: str) -> Path:
