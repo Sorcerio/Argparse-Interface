@@ -8,6 +8,7 @@ from pathlib import Path
 from pprint import pprint
 
 from .Wrapper import Wrapper
+from .types import FileSelectFile
 
 # MARK: Functions
 def getDemoArgParser() -> argparse.ArgumentParser:
@@ -32,7 +33,7 @@ def getDemoArgParser() -> argparse.ArgumentParser:
     parser.add_argument("-a", "--area", help="A specific number of nargs with a default", metavar=("WIDTH", "HEIGHT", "LENGTH"), default=[10, 12, 15], nargs=3)
     parser.add_argument("-l", "--list", nargs="+", help="A list argument")
     parser.add_argument("-ld", "--defaultList", nargs="+", default=[69, 420, 1337], type=int, help="A list argument")
-    parser.add_argument("-p", "--path", type=Path, help="A file or directory path argument") # TODO: Could provide custom `type` for enabling additional ArgUI features? Need to test.
+    parser.add_argument("-p", "--path", type=FileSelectFile(exts=[".png", ".jpg"]), help="A file or directory path argument")
     parser.add_argument("-p2", "--path2", type=Path, help="Multiple files or directory paths argument", nargs="*")
 
     # Regular argument groups
