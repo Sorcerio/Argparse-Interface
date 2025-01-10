@@ -3,6 +3,7 @@
 
 # MARK: Imports
 import argparse
+from typing import Any
 
 # MARK: Classes
 class MetaType:
@@ -20,3 +21,18 @@ class MetaType:
         if (args is not None) and (len(args) > 0):
             print(args, type(args))
             raise argparse.ArgumentTypeError(f"{self.__class__.__name__} has been implemented incorrectly. Use only keyword arguments and ensure {self.__class__.__name__} is instantiated when used for a `type` like: `argparse.add_argument(type={self.__class__.__name__}(...))`.")
+
+    # Functions
+    def isValid(self, value: Any) -> bool:
+        """
+        Determines if the given `value` is valid for this meta type.
+
+        value: The value to check.
+
+        Returns `True` if the value is valid, `False` otherwise.
+        """
+        try:
+            _ = self(value)
+            return True
+        except argparse.ArgumentTypeError:
+            return False

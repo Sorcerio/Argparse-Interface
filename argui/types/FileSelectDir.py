@@ -4,7 +4,6 @@
 # MARK: Imports
 import argparse
 from pathlib import Path
-from typing import Optional, Iterable
 
 from .MetaType import MetaType
 

@@ -2,8 +2,6 @@
 # A widget for selecting a file or directory from the file system.
 
 # MARK: Imports
-import uuid
-import argparse
 from pathlib import Path
 from typing import Optional, Union, Callable, Any
 
@@ -11,12 +9,13 @@ from textual import on
 from textual.app import App
 from textual.dom import DOMNode
 from textual.widget import Widget
-from textual.widgets import Label, Button, Input, Link
-from textual.containers import Vertical, Horizontal
+from textual.widgets import Button, Link
+from textual.containers import Horizontal
 from textual.message import Message
 
 from .. import Utils
 from ..modals.FileSelectModal import FileSelectModal
+from ..modals.AlertModal import AlertModal
 from ..types import FileSelectFile, FileSelectDir
 
 # MARK: Classes
@@ -25,6 +24,7 @@ class FileSelect(Widget):
     A widget for selecting a file or directory from the file system.
     """
     # MARK: Constants
+    ID_FILESELECT_ALERT_RETRY_BTN = "fileSelectAlertRetryButton"
     CLASS_FILESELECT_ROOT = "fileSelect"
     CLASS_FILESELECT_BOX = "fileSelectBox"
     CLASS_FILESELECT_LINK_LABEL = "fileSelectLabel"
@@ -167,18 +167,64 @@ class FileSelect(Widget):
             """
             path: A `Path` object or `None` if the user cancelled.
             """
+            # Check if a path was selected
+            if isinstance(path, Path):
+                # Check if the path is right
+                if isinstance(self.selectType, (FileSelectFile, FileSelectDir)) and (not self.selectType.isValid(path)):
+                    # Not a valid path
+                    # Create alert modal callback
+                    nextLoopPath = path.resolve()
+                    def alertDone(event: Button.Pressed):
+                        """
+                        event: The button press event.
+                        """
+                        # Check if retrying
+                        if event.button.id == self.ID_FILESELECT_ALERT_RETRY_BTN:
+                            print("HEY!", path, nextLoopPath)
+                            self.presentFileSelectModal(app, startPath=nextLoopPath)
+
+                    # Build error reason
+                    if isinstance(self.selectType, FileSelectFile):
+                        if self.selectType.validExts is not None:
+                            validExts = Utils.joinOptions(self.selectType.validExts, "or")
+                            validExts = f" {validExts} "
+                        else:
+                            validExts = ""
+
+                        errorReason = f"Only{validExts}files can be selected."
+                    else:
+                        errorReason = "Only directories can be selected."
+
+                    # Show error alert
+                    app.push_screen(
+                        AlertModal(
+                            f"The selected path is invalid.\n\n{errorReason}",
+                            (
+                                Button(
+                                    "Try Again",
+                                    variant="primary",
+                                    id=self.ID_FILESELECT_ALERT_RETRY_BTN
+                                ),
+                                Button("Cancel", variant="error")
+                            )
+                        ),
+                        callback=alertDone
+                    )
+
+                    # Act as if no path was selected
+                    path = None
+                else:
+                    # Update the label
+                    self.__linkLabel.update(Utils.limitString(str(path), 42, trimRight=False))
+                    self.__linkLabel.tooltip = str(path)
+                    self.__linkLabel.url = path
+
             # Send the message
             self.post_message(self.FileSelectComplete(
                 sender=self,
                 context=self.context,
                 path=path
             ))
-
-            # Update the label
-            if isinstance(path, Path):
-                self.__linkLabel.update(Utils.limitString(str(path), 42, trimRight=False))
-                self.__linkLabel.tooltip = str(path)
-                self.__linkLabel.url = path
 
         # Push the modal
         app.push_screen(
