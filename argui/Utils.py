@@ -3,7 +3,7 @@
 
 # MARK: Imports
 import re
-from typing import Optional, Union
+from typing import Optional, Union, Iterable
 
 # MARK: Functions
 def toTitleCase(s: str) -> str:
@@ -81,3 +81,26 @@ def limitString(
     else:
         # Trim the left side
         return postfix + s[-(maxChars - len(postfix) + 1):]
+
+def joinOptions(items: Iterable[str], conj: str, sep: str = ", ") -> str:
+    """
+    Joins the given `items` like using `'<sep>'.join(items)` but adds the given conjunction before the last item.
+
+    items: The items to join.
+    conj: The conjunction to add before the last item. Usually "or" or "and".
+    sep: The separator to use between items. Usually ", ".
+
+    Returns the joined string.
+    """
+    # Check if there are items
+    if not items:
+        return ""
+
+    # Join based on length
+    itemLen = len(items)
+    if itemLen == 1:
+        return items[0]
+    elif itemLen == 2:
+        return f"{items[0]} {conj} {items[1]}"
+    else:
+        return f"{sep.join(items[:-1])}{sep}{conj} {items[-1]}"

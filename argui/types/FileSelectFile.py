@@ -29,9 +29,6 @@ class FileSelectFile(MetaType):
         # Setup file extensions
         self.validExts = exts
 
-        if self.validExts is not None:
-            self.validExts = [ext.lower().lstrip(".") for ext in self.validExts]
-
     # Python Functions
     def __call__(self, value: str) -> Path:
         # Get the path
@@ -47,8 +44,7 @@ class FileSelectFile(MetaType):
         # Check file extensions
         if self.validExts is not None:
             cleanExt = path.suffix.lower().lstrip(".")
-            if cleanExt not in self.validExts:
-                validExtsDotted = [f".{ext}" for ext in self.validExts]
-                raise argparse.ArgumentTypeError(f"File extension `.{cleanExt}` is not a valid extension for this argument. Valid extensions are: {', '.join(validExtsDotted)}")
+            if cleanExt not in [ext.lower().lstrip(".") for ext in self.validExts]:
+                raise argparse.ArgumentTypeError(f"File extension `.{cleanExt}` is not a valid extension for this argument. Valid extensions are: {', '.join(self.validExts)}")
 
         return path

@@ -17,6 +17,7 @@ from textual.message import Message
 
 from .. import Utils
 from ..modals.FileSelectModal import FileSelectModal
+from ..types import FileSelectFile, FileSelectDir
 
 # MARK: Classes
 class FileSelect(Widget):
@@ -37,14 +38,13 @@ class FileSelect(Widget):
     """
 
     # MARK: Lifecycle
-    # TODO: Add file select type (any, any file, file with exts, dir, etc)
-    # ^[need to have a way to connect extra data with an argparse argument for this!]
     def __init__(self,
         name: Optional[str] = None,
         id: Optional[str] = None,
         classes: Optional[str] = None,
         disabled: bool = False,
-        context: Optional[Any] = None
+        context: Optional[Any] = None,
+        selectType: Optional[Union[FileSelectFile, FileSelectDir]] = None
     ) -> None:
         """
         name: The name of the file select.
@@ -52,6 +52,7 @@ class FileSelect(Widget):
         classes: The classes to apply to the file select.
         disabled: If `True`, the file select will be disabled.
         context: Any context to associate with the file select. This will be included in all event messages.
+        selectType: The type of path to allow as a selection. If `None`, any type of path (file with any extension or directory) is allowed.
         """
         super().__init__(
             name=name,
@@ -61,12 +62,30 @@ class FileSelect(Widget):
         )
 
         self.context = context
+
+        if isinstance(selectType, (FileSelectFile, FileSelectDir)):
+            self.selectType = selectType
+        else:
+            self.selectType = None
+
         self.__linkLabel: Optional[Link] = None # Populated in `compose()`
 
     def compose(self):
+        # Decide tooltip
+        if isinstance(self.selectType, FileSelectDir):
+            tooltipTarget = "directory"
+        elif isinstance(self.selectType, FileSelectFile):
+            if self.selectType.validExts is not None:
+                tooltipTarget = Utils.joinOptions(self.selectType.validExts, "or")
+                tooltipTarget = f"{tooltipTarget} file"
+            else:
+                tooltipTarget = "file"
+        else:
+            tooltipTarget = "path"
+
         # Record the link element
         self.__linkLabel = Link(
-            "No file selected.",
+            f"No {tooltipTarget} selected.",
             url="",
             classes=self.CLASS_FILESELECT_LINK_LABEL
         )
@@ -78,7 +97,7 @@ class FileSelect(Widget):
                 "Select",
                 variant="primary",
                 classes=self.CLASS_FILESELECT_OPEN_BTN,
-                tooltip="Select a file from your system.", # TODO: Change text based on select type
+                tooltip=f"Select a {tooltipTarget} from your system.",
             ),
             classes=self.CLASS_FILESELECT_BOX
         )
@@ -163,7 +182,10 @@ class FileSelect(Widget):
 
         # Push the modal
         app.push_screen(
-            FileSelectModal(startPath),
+            FileSelectModal(
+                startPath,
+                selectType=self.selectType
+            ),
             callback=fileSelectDone
         )
 

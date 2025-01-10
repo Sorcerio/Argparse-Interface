@@ -12,6 +12,8 @@ from textual.containers import Vertical, Horizontal
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, DirectoryTree
 
+from ..types import FileSelectFile, FileSelectDir
+
 # MARK: Classes
 class FileSelectModal(ModalScreen[Optional[Path]]):
     """
@@ -31,9 +33,13 @@ class FileSelectModal(ModalScreen[Optional[Path]]):
     ID_SELECT_BTN = "fsModalSelectButton"
 
     # Lifecycle
-    def __init__(self, startPath: Optional[Union[str, Path]]):
+    def __init__(self,
+        startPath: Optional[Union[str, Path]],
+        selectType: Optional[Union[FileSelectFile, FileSelectDir]] = None
+    ):
         """
         startPath: The path to start the modal at.
+        selectType: The type of path to allow as a selection. If `None`, any type of path (file with any extension or directory) is allowed.
         """
         # Super
         super().__init__()
@@ -51,11 +57,25 @@ class FileSelectModal(ModalScreen[Optional[Path]]):
         # Set the current path
         self.__curPath = self._startPath
 
+        # Set the select type
+        if isinstance(selectType, (FileSelectFile, FileSelectDir)):
+            self.selectType = selectType
+        else:
+            self.selectType = None
+
         # Declare ui elements
         self._dirTree: Optional[DirectoryTree] = None # Set in `compose`
         self._pathInput: Optional[Input] = None # Set in `compose`
 
     def compose(self) -> ComposeResult:
+        # Decide select button text
+        if isinstance(self.selectType, FileSelectFile):
+            selectText = "Select File"
+        elif isinstance(self.selectType, FileSelectDir):
+            selectText = "Select Directory"
+        else:
+            selectText = "Select"
+
         # Prepare the dir tree
         self._dirTree = DirectoryTree(
             self._startPath,
@@ -92,7 +112,7 @@ class FileSelectModal(ModalScreen[Optional[Path]]):
                     id=self.ID_CANCEL_BTN
                 ),
                 Button(
-                    "Select",
+                    selectText,
                     variant="success",
                     id=self.ID_SELECT_BTN
                 ),
