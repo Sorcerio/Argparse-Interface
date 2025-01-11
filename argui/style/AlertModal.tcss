@@ -4,7 +4,6 @@ AlertModal {
 
 #alertModal {
     background: $surface;
-
     width: 50%;
     height: 10;
     border: thick $background 80%;

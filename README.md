@@ -11,6 +11,9 @@ An automatic, terminal based interactive interface for any Python 3 `argparse` c
     - [Setup Your Argparse](#setup-your-argparse)
     - [Run Your Program](#run-your-program)
     - [Navigation](#navigation)
+    - [Advanced Argument Types](#advanced-argument-types)
+      - [Example Usage](#example-usage)
+      - [File Select](#file-select)
   - [Development Setup](#development-setup)
 
 ---
@@ -72,6 +75,47 @@ However, Mouse navigation does work in Powershell when opened on its own.
 
 Keyboard navigation is always available using `Tab`, `Arrow Keys`, and `Enter`.
 But make note that if you are using a terminal within another program (like VSCode), that some more advanced keyboard commands (like `CTRL+S`) may be captured by the container program and not sent to the GUI.
+
+### Advanced Argument Types
+
+ArgUI also provides a number of meta types to be used with the `.add_argument(type=...)` function to add additional functionality to the interface mode.
+
+These can be accessed with `import argui.types`.
+
+#### Example Usage
+
+Meta Types can be used for the `type` keyword argument anywhere you call the `add_argument(...)` function.
+
+```python
+# Import
+import argparse
+import argui
+from argui.types import FileSelectFile
+
+# Setup your ArgumentParser normally
+parser = argparse.ArgumentParser(prog="Demo")
+
+# Define your arguments
+parser.add_argument(
+    "-p",
+    "--path",
+    type=FileSelectFile(exts=[".png", ".jpg"]), # Instantiate the Meta Type
+    help="A file or directory path argument"
+)
+
+# Wrap the parser with ArgUI and use as normal (see above)
+```
+
+#### File Select
+
+All options will show the File Select input in the GUI mode and operate as advanced types in the CLI mode.
+
+| Type | Effect | Notes |
+| ---- | ------ | ----- |
+| `pathlib.Path`<br>_(native)_ | Allows for any file or directory to be selected. | Provided as an uninstantiated type like: `type=Path` |
+| `FileSelectFile` | Allows only files to be selected. Optionally restricts selection to specified file types. | Accepts a list of extensions to whitelist. |
+| `FileSelectDir` | Allows only directories to be selected. |    |
+
 
 ## Development Setup
 

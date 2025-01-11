@@ -58,6 +58,19 @@ Screen {
             padding: 0 1 1 1;
         }
 
+        .fileSelectContainer {
+            .fileSelectBox {
+                background: $surface-lighten-1;
+                height: auto;
+                content-align: right middle;
+
+                .fileSelectLabel {
+                    width: 2fr;
+                    padding: 1 1 1 1;
+                }
+            }
+        }
+
         .inputLabel {
             padding: 0 1 0 1;
             margin: 1 0 0 0;
@@ -91,6 +104,10 @@ Screen {
                 margin-bottom: 1;
             }
 
+            FileSelect {
+                width: 4fr;
+            }
+
             .listInputItemBox {
                 background: $surface-lighten-1;
                 height: auto;
@@ -106,6 +123,20 @@ Screen {
 
                 .item:first-of-type {
                     margin: 0;
+                }
+
+                .fileSelectBox {
+                    background: $boost-lighten-1;
+                    width: 1fr;
+
+                    .fileSelectLabel {
+                        width: 3fr;
+                        padding: 1 1 1 1;
+                    }
+
+                    .fileSelectButton {
+                        width: 1fr;
+                    }
                 }
 
                 Input, Switch, Select {

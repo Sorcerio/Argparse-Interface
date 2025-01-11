@@ -1,0 +1,38 @@
+# Argparse Interface: Meta Type
+# Base class defining meta types that can be used for an `argparse` argument's `type` parameter.
+
+# MARK: Imports
+import argparse
+from typing import Any
+
+# MARK: Classes
+class MetaType:
+    """
+    Base class defining meta types that can be used for an `argparse` argument's `type` parameter.
+
+    This class should be instantiated when used as in an `argparse.add_argument(...)` call's `type` as such: `argparse.add_argument(type=(...))`.
+
+    No unnamed arguments can be provided to this class.
+    Providing any will raise an `argparse.ArgumentTypeError` as this indicates the user is trying to use this class incorrectly.
+    """
+    # Constructor
+    def __init__(self, *args):
+        # Check if used incorrectly
+        if (args is not None) and (len(args) > 0):
+            print(args, type(args))
+            raise argparse.ArgumentTypeError(f"{self.__class__.__name__} has been implemented incorrectly. Use only keyword arguments and ensure {self.__class__.__name__} is instantiated when used for a `type` like: `argparse.add_argument(type={self.__class__.__name__}(...))`.")
+
+    # Functions
+    def isValid(self, value: Any) -> bool:
+        """
+        Determines if the given `value` is valid for this meta type.
+
+        value: The value to check.
+
+        Returns `True` if the value is valid, `False` otherwise.
+        """
+        try:
+            _ = self(value)
+            return True
+        except argparse.ArgumentTypeError:
+            return False

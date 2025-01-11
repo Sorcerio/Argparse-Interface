@@ -4,9 +4,11 @@
 # MARK: Imports
 import argparse
 import logging
+from pathlib import Path
 from pprint import pprint
 
 from .Wrapper import Wrapper
+from .types import FileSelectFile
 
 # MARK: Functions
 def getDemoArgParser() -> argparse.ArgumentParser:
@@ -31,6 +33,8 @@ def getDemoArgParser() -> argparse.ArgumentParser:
     parser.add_argument("-a", "--area", help="A specific number of nargs with a default", metavar=("WIDTH", "HEIGHT", "LENGTH"), default=[10, 12, 15], nargs=3)
     parser.add_argument("-l", "--list", nargs="+", help="A list argument")
     parser.add_argument("-ld", "--defaultList", nargs="+", default=[69, 420, 1337], type=int, help="A list argument")
+    parser.add_argument("-p", "--path", type=FileSelectFile(exts=[".png", ".jpg"]), help="A file or directory path argument")
+    parser.add_argument("-p2", "--path2", type=Path, help="Multiple files or directory paths argument", nargs="*")
 
     # Regular argument groups
     group1 = parser.add_argument_group(title="Group 1", description="This is the first group.")
