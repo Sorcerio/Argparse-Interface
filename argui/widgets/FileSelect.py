@@ -180,7 +180,6 @@ class FileSelect(Widget):
                         """
                         # Check if retrying
                         if event.button.id == self.ID_FILESELECT_ALERT_RETRY_BTN:
-                            print("HEY!", path, nextLoopPath)
                             self.presentFileSelectModal(app, startPath=nextLoopPath)
 
                     # Build error reason
