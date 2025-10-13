@@ -1,0 +1,35 @@
+[project]
+name = "argparse_interface"
+version = "0.3.0"
+description = "An automatic, terminal based interactive interface for any Python 3 `argparse` command line with keyboard and mouse support."
+readme = "README.md"
+authors = [
+    { name = "Sorcerio" }
+]
+license = "MIT"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
+]
+requires-python = ">=3.10"
+dependencies = [
+    "textual==1.0",
+    "textual-dev==1.7",
+]
+
+[project.scripts]
+arguidemo = "argui.Demo:runDemo"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"argui" = ["style/*.tcss"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["argui*"]

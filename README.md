@@ -4,17 +4,19 @@
 
 An automatic, terminal based interactive interface for any Python 3 `argparse` command line with keyboard and mouse support.
 
-- [ArgUI](#argui)
-  - [See It in Action](#see-it-in-action)
-  - [Usage](#usage)
-    - [Install as a Dependency](#install-as-a-dependency)
-    - [Setup Your Argparse](#setup-your-argparse)
-    - [Run Your Program](#run-your-program)
-    - [Navigation](#navigation)
-    - [Advanced Argument Types](#advanced-argument-types)
-      - [Example Usage](#example-usage)
-      - [File Select](#file-select)
-  - [Development Setup](#development-setup)
+* [ArgUI](#argui)
+  * [See It in Action](#see-it-in-action)
+  * [Usage](#usage)
+    * [Install as a Dependency](#install-as-a-dependency)
+    * [Setup Your Argparse](#setup-your-argparse)
+    * [Run Your Program](#run-your-program)
+    * [Navigation](#navigation)
+    * [Advanced Argument Types](#advanced-argument-types)
+      * [Example Usage](#example-usage)
+      * [File Select](#file-select)
+  * [Development Setup](#development-setup)
+    * [Setup the Environment](#setup-the-environment)
+    * [Build the Project](#build-the-project)
 
 ---
 
@@ -119,7 +121,20 @@ All options will show the File Select input in the GUI mode and operate as advan
 
 ## Development Setup
 
+These instructions assume you will be using the [uv](https://docs.astral.sh/uv/) Python package manager.
+
+### Setup the Environment
+
+1. Install [uv](https://docs.astral.sh/uv/).
 1. Clone this repo and enter the directory with a terminal.
-1. Setup a Python Env: `python -m venv .venv --prompt "argUI"`
-1. Enter the Python Env.
-1. Install requirements: `pip install -r requirements.txt`
+1. Run `uv run demo.py` to run the demo or any other scripts you create.
+
+### Build the Project
+
+1. [Setup the environment](#setup-the-environment) and successfully run the demo.
+1. If necessary, bump the package version with `uv version`.
+1. Run `uv build` to build to the `dist/` directory.
+1. Run `python check.py` with your primary, clean, Python distribution to initiate the demo within an isolated test environment.
+    * If the demo does not function, the package is broken and needs to be fixed.
+1. Run `uv publish --token <PYPY_TOKEN>` to publish the package.
+1. Run `uv run --with argui --no-project -- python -c "import argui"` to test the package as pulled from PyPi.
