@@ -160,7 +160,7 @@ wheels = [
 [[package]]
 name = "argparse-interface"
 version = "0.3.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "textual" },
     { name = "textual-dev" },
