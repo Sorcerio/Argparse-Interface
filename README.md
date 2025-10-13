@@ -4,17 +4,17 @@
 
 An automatic, terminal based interactive interface for any Python 3 `argparse` command line with keyboard and mouse support.
 
-- [ArgUI](#argui)
-  - [See It in Action](#see-it-in-action)
-  - [Usage](#usage)
-    - [Install as a Dependency](#install-as-a-dependency)
-    - [Setup Your Argparse](#setup-your-argparse)
-    - [Run Your Program](#run-your-program)
-    - [Navigation](#navigation)
-    - [Advanced Argument Types](#advanced-argument-types)
-      - [Example Usage](#example-usage)
-      - [File Select](#file-select)
-  - [Development Setup](#development-setup)
+* [ArgUI](#argui)
+  * [See It in Action](#see-it-in-action)
+  * [Usage](#usage)
+    * [Install as a Dependency](#install-as-a-dependency)
+    * [Setup Your Argparse](#setup-your-argparse)
+    * [Run Your Program](#run-your-program)
+    * [Navigation](#navigation)
+    * [Advanced Argument Types](#advanced-argument-types)
+      * [Example Usage](#example-usage)
+      * [File Select](#file-select)
+  * [Development Setup](#development-setup)
 
 ---
 
@@ -119,7 +119,8 @@ All options will show the File Select input in the GUI mode and operate as advan
 
 ## Development Setup
 
+These instructions assume you will be using the [uv](https://docs.astral.sh/uv/) Python package manager.
+
+1. Install [uv](https://docs.astral.sh/uv/).
 1. Clone this repo and enter the directory with a terminal.
-1. Setup a Python Env: `python -m venv .venv --prompt "argUI"`
-1. Enter the Python Env.
-1. Install requirements: `pip install -r requirements.txt`
+1. Run `uv run demo.py` to run the demo or any other scripts you create.
