@@ -70,12 +70,6 @@ def main():
     pythonExe = "python"
     pipExe = "pip"
 
-    # # Find the built package
-    # pkgs = list(testDir.glob("*.whl")) or list(testDir.glob("*.tar.gz"))
-    # if not pkgs:
-    #     print("No built package found in: ", testDir)
-    #     sys.exit(1)
-
     # Install the package
     run(f'"{pipExe}" install "{packageDest}"', cwd=testDir)
 
