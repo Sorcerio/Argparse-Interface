@@ -134,7 +134,8 @@ These instructions assume you will be using the [uv](https://docs.astral.sh/uv/)
 1. [Setup the environment](#setup-the-environment) and successfully run the demo.
 1. If necessary, bump the package version with `uv version`.
 1. Run `uv build` to build to the `dist/` directory.
+1. Ensure that only the package version you want to publish is in the `dist/` directory.
 1. Run `python check.py` with your primary, clean, Python distribution to initiate the demo within an isolated test environment.
     * If the demo does not function, the package is broken and needs to be fixed.
-1. Run `uv publish --token <PYPY_TOKEN>` to publish the package.
+1. Run `uv publish` to publish the package to PyPi.
 1. Run `uv run --with argui --no-project -- python -c "import argui"` to test the package as pulled from PyPi.

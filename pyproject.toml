@@ -1,6 +1,6 @@
 [project]
-name = "argparse_interface"
-version = "0.3.0"
+name = "argparse-interface"
+version = "0.3.1"
 description = "An automatic, terminal based interactive interface for any Python 3 `argparse` command line with keyboard and mouse support."
 readme = "README.md"
 authors = [

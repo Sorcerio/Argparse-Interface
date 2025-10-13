@@ -17,7 +17,12 @@ def run(cmd, cwd=None, env=None):
     if result.returncode != 0:
         sys.exit(result.returncode)
 
-def selectPackage(distDir) -> Path:
+def selectPackage(distDir) -> Optional[Path]:
+    """
+    Lets the user select a package from the `dist/` directory.
+
+    Returns the path of the package or `None` if it should be fetched from PyPi.
+    """
     pkgs = (list(distDir.glob("*.whl")) or list(distDir.glob("*.tar.gz")))
     pkgCount = len(pkgs)
 
@@ -26,17 +31,24 @@ def selectPackage(distDir) -> Path:
         sys.exit(1)
 
     selected: Optional[int] = None
-    while (selected is None) or (selected < 0) or (selected >= pkgCount):
+    while (selected is None) or (selected < 0) or (selected >= (pkgCount + 1)):
         print("Available packages:")
         for i, pkg in enumerate(pkgs):
             print(f"\t[{i}] {pkg.name}")
+
+        print(f"\t[{pkgCount}] From PyPi")
 
         try:
             selected = int(input("\nSelect a package to test: "))
         except ValueError:
             selected = None
 
-    return pkgs[selected]
+    print(selected, pkgCount, pkgCount + 1,)
+
+    if selected == pkgCount:
+        return None
+    else:
+        return pkgs[selected]
 
 def main():
     # Prepare paths
@@ -57,7 +69,9 @@ def main():
     testDir.mkdir()
 
     # Copy built package
-    packageDest = shutil.copy(package, testDir)
+    packageDest: Optional[Path] = None
+    if package is not None:
+        packageDest = Path(shutil.copy(package, testDir))
 
     # Create test.py
     testScript = testDir / "test.py"
@@ -71,7 +85,10 @@ def main():
     pipExe = "pip"
 
     # Install the package
-    run(f'"{pipExe}" install "{packageDest}"', cwd=testDir)
+    if packageDest is None:
+        run(f'"{pipExe}" install argparse-interface', cwd=testDir)
+    else:
+        run(f'"{pipExe}" install "{packageDest}"', cwd=testDir)
 
     # Run test script
     run(f'"{pythonExe}" test.py --gui', cwd=testDir)
